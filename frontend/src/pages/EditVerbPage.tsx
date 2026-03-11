@@ -2,9 +2,14 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
-import { VerbFormData } from '../utils/gorohParser'
+import { parseGoroh, VerbFormData } from '../utils/gorohParser'
 import { Verb } from '../types'
 import { stripAccent } from '../utils/forms'
+
+interface VerbFormRead extends VerbFormData {
+  id: number
+  verb_id: number
+}
 
 interface AspectPair {
   id: number
@@ -35,7 +40,10 @@ export default function EditVerbPage() {
   const [allVerbs, setAllVerbs] = useState<Verb[]>([])
   const [pairs, setPairs] = useState<AspectPair[]>([])
   const [derivations, setDerivations] = useState<Derivation[]>([])
-  const [forms, setForms] = useState<VerbFormData[]>([])
+  const [forms, setForms] = useState<VerbFormRead[]>([])
+  const [replaceText, setReplaceText] = useState('')
+  const [replaceForms, setReplaceForms] = useState<VerbFormData[]>([])
+  const [replaceError, setReplaceError] = useState('')
   const [newPartner, setNewPartner] = useState('')
   const [newDerivVerb, setNewDerivVerb] = useState('')
   const [newDerivType, setNewDerivType] = useState<DerivationType | ''>('')
@@ -54,7 +62,7 @@ const [editInfinitive, setEditInfinitive] = useState('')
       api.get<Verb[]>('/verbs'),
       api.get<AspectPair[]>('/aspect-pairs'),
       api.get<Derivation[]>('/derivations'),
-      api.get<VerbFormData[]>(`/verb-forms/${verbId}`),
+      api.get<VerbFormRead[]>(`/verb-forms/${verbId}`),
     ])
     const found = verbs.find(v => v.id === verbId) ?? null
     setVerb(found)
@@ -165,7 +173,39 @@ const [editInfinitive, setEditInfinitive] = useState('')
     }
   }
 
-async function saveVerb() {
+async function editForm(id: number, value: string) {
+    const updated = await api.put<VerbFormRead>(`/verb-forms/form/${id}`, { form: value })
+    setForms(prev => prev.map(f => f.id === id ? { ...f, form: updated.form } : f))
+  }
+
+  function handleReplaceTextChange(text: string) {
+    setReplaceText(text)
+    setReplaceError('')
+    if (!text.trim()) { setReplaceForms([]); return }
+    const result = parseGoroh(text)
+    if (!result) {
+      setReplaceError('Could not parse — make sure you copied the full page text from goroh.pp.ua.')
+      setReplaceForms([])
+    } else {
+      setReplaceForms(result.forms)
+    }
+  }
+
+  async function confirmReplace() {
+    if (replaceForms.length === 0) return
+    try {
+      await api.delete(`/verb-forms/${verbId}`)
+      await api.post('/verb-forms', { verb_id: verbId, forms: replaceForms })
+      setReplaceText('')
+      setReplaceForms([])
+      setReplaceError('')
+      await load()
+    } catch (err) {
+      setReplaceError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    }
+  }
+
+  async function saveVerb() {
     try {
       await api.put(`/verbs/${verbId}`, {
         infinitive: editInfinitive,
@@ -396,13 +436,52 @@ async function saveVerb() {
 
       {message && <p>{message}</p>}
 
-      {forms.length > 0 && (
-        <>
-          <h2>Paradigm</h2>
-          <FormsTable forms={forms} />
-        </>
-      )}
-<h2>Danger zone</h2>
+      <h2>Paradigm</h2>
+      {forms.length > 0
+        ? <>
+            <FormsTable forms={forms} onEdit={editForm} />
+            <details style={{ marginTop: '1rem' }}>
+              <summary>Replace all forms (paste from goroh)</summary>
+              <div style={{ marginTop: '0.5rem' }}>
+                <textarea
+                  rows={6}
+                  style={{ width: '100%', fontFamily: 'inherit' }}
+                  value={replaceText}
+                  onChange={e => handleReplaceTextChange(e.target.value)}
+                  placeholder="Paste goroh.pp.ua page text here…"
+                />
+                {replaceError && <p style={{ color: '#c00' }}>{replaceError}</p>}
+                {replaceForms.length > 0 && (
+                  <>
+                    <p>Preview:</p>
+                    <FormsTable forms={replaceForms} />
+                    <button onClick={confirmReplace} style={{ marginTop: '0.5rem' }}>Confirm replace</button>
+                  </>
+                )}
+              </div>
+            </details>
+          </>
+        : <>
+            <p>No forms yet. Paste goroh output to add them.</p>
+            <textarea
+              rows={6}
+              style={{ width: '100%', fontFamily: 'inherit' }}
+              value={replaceText}
+              onChange={e => handleReplaceTextChange(e.target.value)}
+              placeholder="Paste goroh.pp.ua page text here…"
+            />
+            {replaceError && <p style={{ color: '#c00' }}>{replaceError}</p>}
+            {replaceForms.length > 0 && (
+              <>
+                <p>Preview:</p>
+                <FormsTable forms={replaceForms} />
+                <button onClick={confirmReplace} style={{ marginTop: '0.5rem' }}>Confirm replace</button>
+              </>
+            )}
+          </>
+      }
+
+      <h2>Danger zone</h2>
       <button style={{ color: '#c00' }} onClick={deleteVerb}>Delete verb</button>
     </div>
   )

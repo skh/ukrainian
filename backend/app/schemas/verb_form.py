@@ -18,6 +18,10 @@ class VerbFormRead(VerbFormCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class VerbFormUpdate(BaseModel):
+    form: str
+
+
 class VerbFormsBulkCreate(BaseModel):
     verb_id: int
     forms: list[VerbFormCreate]

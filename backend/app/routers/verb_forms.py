@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.crud import get_or_404
 from app.database import get_db
 from app.models.verb import Verb, VerbForm
-from app.schemas.verb_form import VerbFormRead, VerbFormsBulkCreate
+from app.schemas.verb_form import VerbFormRead, VerbFormUpdate, VerbFormsBulkCreate
 
 router = APIRouter(prefix="/api/verb-forms", tags=["verb-forms"])
 
@@ -33,6 +33,15 @@ def create_verb_forms(data: VerbFormsBulkCreate, db: Session = Depends(get_db)):
     for row in created:
         db.refresh(row)
     return created
+
+
+@router.put("/form/{form_id}", response_model=VerbFormRead)
+def update_verb_form(form_id: int, data: VerbFormUpdate, db: Session = Depends(get_db)):
+    form = get_or_404(db, VerbForm, form_id)
+    form.form = data.form
+    db.commit()
+    db.refresh(form)
+    return form
 
 
 @router.delete("/{verb_id}", status_code=204)
