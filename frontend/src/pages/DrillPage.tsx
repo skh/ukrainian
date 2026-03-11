@@ -43,48 +43,70 @@ interface HistoryEntry {
   pairId?: number
 }
 
-function ParadigmHint({ verb, forms, translations, aspect }: {
+function ParadigmHint({ verb, forms, translations, partnerVerb, partnerForms }: {
   verb: Verb
   forms: VerbForm[]
   translations: PairTranslation[]
-  aspect: 'ipf' | 'pf'
+  partnerVerb?: Verb
+  partnerForms?: VerbForm[]
 }) {
   const [show, setShow] = useState(false)
+  const [showPartner, setShowPartner] = useState(false)
+
+  const displayVerb = showPartner && partnerVerb ? partnerVerb : verb
+  const displayForms = showPartner && partnerVerb ? (partnerForms ?? []) : forms
+  const displayAspect = displayVerb.aspect
+
   const byLang = translations.reduce<Record<string, string[]>>((acc, t) => {
     ;(acc[t.lang] ??= []).push(t.text)
     return acc
   }, {})
+
+  const triangleStyle: React.CSSProperties = {
+    cursor: 'pointer', userSelect: 'none', color: '#555', padding: '0 0.3em',
+  }
+
+  const triangle = partnerVerb ? (
+    displayAspect === 'ipf'
+      ? <span style={triangleStyle} onClick={() => setShowPartner(s => !s)}>▶</span>
+      : <span style={triangleStyle} onClick={() => setShowPartner(s => !s)}>◀</span>
+  ) : null
+
   return createPortal(
-    <div
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      style={{ position: 'fixed', bottom: '1rem', right: '1rem', zIndex: 9999 }}
-    >
+    <div style={{ position: 'fixed', bottom: '1rem', right: '1rem', zIndex: 9999 }}>
       {show && (
         <div style={{
           position: 'absolute', bottom: '2.5rem', right: 0,
-          background: aspectBg[aspect], border: '1px solid #ccc', borderRadius: '4px',
+          background: aspectBg[displayAspect], border: '1px solid #ccc', borderRadius: '4px',
           padding: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           fontSize: '70%', whiteSpace: 'nowrap',
         }}>
-          <strong>{verb.accented}</strong> <span style={{ color: '#888' }}>({verb.aspect})</span>
+          <div>
+            {displayAspect === 'pf' && triangle}
+            <strong>{displayVerb.accented}</strong>
+            {' '}<span style={{ color: '#888' }}>({displayVerb.aspect})</span>
+            {displayAspect === 'ipf' && triangle}
+          </div>
           {Object.entries(byLang).map(([lang, texts]) => (
             <div key={lang} style={{ color: '#555', marginTop: '0.2em' }}>
               {lang}: {texts.join(', ')}
             </div>
           ))}
           <div style={{ marginTop: '0.5rem' }}>
-            <FormsTable forms={forms} />
+            <FormsTable forms={displayForms} />
           </div>
         </div>
       )}
-      <div style={{
-        width: '1.8rem', height: '1.8rem',
-        border: '2px solid #666', borderRadius: '50%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'default', fontSize: '1rem', color: '#444',
-        background: 'white', userSelect: 'none',
-      }}>
+      <div
+        onClick={() => { if (show) setShowPartner(false); setShow(s => !s) }}
+        style={{
+          width: '1.8rem', height: '1.8rem',
+          border: '2px solid #666', borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', fontSize: '1rem', color: '#444',
+          background: 'white', userSelect: 'none',
+        }}
+      >
         ?
       </div>
     </div>,
@@ -484,13 +506,24 @@ export default function DrillPage() {
   }
 
   function paradigmHint(verbId: number, targetVerbId?: number) {
-    const verb = verbs.find(v => v.id === (targetVerbId ?? verbId))
-    if (!verb) return null
     const hintVerbId = targetVerbId ?? verbId
+    const verb = verbs.find(v => v.id === hintVerbId)
+    if (!verb) return null
     const forms = formsByVerbId.get(hintVerbId) ?? []
     const pairId = verbToPairId.get(hintVerbId)
     const translations = pairId ? pairTranslations.filter(t => t.pair_id === pairId) : []
-    return <ParadigmHint verb={verb} forms={forms} translations={translations} aspect={verb.aspect} />
+    const pair = pairs.find(p => p.id === pairId)
+    const partnerVerbId = pair
+      ? (verb.aspect === 'ipf' ? pair.pf_verb_id : pair.ipf_verb_id)
+      : null
+    const partnerVerb = partnerVerbId ? verbs.find(v => v.id === partnerVerbId) : undefined
+    const partnerForms = partnerVerbId ? (formsByVerbId.get(partnerVerbId) ?? []) : undefined
+    return (
+      <ParadigmHint
+        verb={verb} forms={forms} translations={translations}
+        partnerVerb={partnerVerb} partnerForms={partnerForms}
+      />
+    )
   }
 
   if (phase === 'revealing') {
