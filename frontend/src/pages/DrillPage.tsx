@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { stripAccent } from '../utils/forms'
 import { VerbFormData } from '../utils/gorohParser'
 import { Verb, Tag, PairTranslation } from '../types'
 import { aspectBg } from '../utils/theme'
+import { FormsTable } from '../components/FormsTable'
 import {
   pickRandom,
   generateAspectQuestion,
@@ -39,6 +41,55 @@ interface HistoryEntry {
   correctAnswer: string
   correct: boolean
   pairId?: number
+}
+
+function ParadigmHint({ verb, forms, translations, aspect }: {
+  verb: Verb
+  forms: VerbForm[]
+  translations: PairTranslation[]
+  aspect: 'ipf' | 'pf'
+}) {
+  const [show, setShow] = useState(false)
+  const byLang = translations.reduce<Record<string, string[]>>((acc, t) => {
+    ;(acc[t.lang] ??= []).push(t.text)
+    return acc
+  }, {})
+  return createPortal(
+    <div
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+      style={{ position: 'fixed', bottom: '1rem', right: '1rem', zIndex: 9999 }}
+    >
+      {show && (
+        <div style={{
+          position: 'absolute', bottom: '2.5rem', right: 0,
+          background: aspectBg[aspect], border: '1px solid #ccc', borderRadius: '4px',
+          padding: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          fontSize: '70%', whiteSpace: 'nowrap',
+        }}>
+          <strong>{verb.accented}</strong> <span style={{ color: '#888' }}>({verb.aspect})</span>
+          {Object.entries(byLang).map(([lang, texts]) => (
+            <div key={lang} style={{ color: '#555', marginTop: '0.2em' }}>
+              {lang}: {texts.join(', ')}
+            </div>
+          ))}
+          <div style={{ marginTop: '0.5rem' }}>
+            <FormsTable forms={forms} />
+          </div>
+        </div>
+      )}
+      <div style={{
+        width: '1.8rem', height: '1.8rem',
+        border: '2px solid #666', borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'default', fontSize: '1rem', color: '#444',
+        background: 'white', userSelect: 'none',
+      }}>
+        ?
+      </div>
+    </div>,
+    document.body,
+  )
 }
 
 function renderPrompt(q: Question) {
@@ -432,6 +483,16 @@ export default function DrillPage() {
     )
   }
 
+  function paradigmHint(verbId: number, targetVerbId?: number) {
+    const verb = verbs.find(v => v.id === (targetVerbId ?? verbId))
+    if (!verb) return null
+    const hintVerbId = targetVerbId ?? verbId
+    const forms = formsByVerbId.get(hintVerbId) ?? []
+    const pairId = verbToPairId.get(hintVerbId)
+    const translations = pairId ? pairTranslations.filter(t => t.pair_id === pairId) : []
+    return <ParadigmHint verb={verb} forms={forms} translations={translations} aspect={verb.aspect} />
+  }
+
   if (phase === 'revealing') {
     return (
       <div style={{ background: question ? aspectBg[question.aspect] : undefined }}>
@@ -455,6 +516,7 @@ export default function DrillPage() {
         </button>
         <br /><br />
         <button onClick={endDrill}>End drill</button>
+        {question && paradigmHint(question.verbId, question.targetVerbId)}
       </div>
     )
   }
@@ -478,6 +540,7 @@ export default function DrillPage() {
         <button className="btn-primary" onClick={() => continueOrEnd(false)} ref={continueRef}>Continue</button>
         {' '}
         <button onClick={() => continueOrEnd(true)}>End drill</button>
+        {question && paradigmHint(question.verbId, question.targetVerbId)}
       </div>
     )
   }

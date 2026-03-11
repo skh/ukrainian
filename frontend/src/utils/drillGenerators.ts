@@ -29,6 +29,7 @@ export interface Question {
   correctForm: string
   aspect: 'ipf' | 'pf'
   verbId: number
+  targetVerbId?: number
   display?: PromptLine[]
 }
 
@@ -138,6 +139,7 @@ export function generateAspectQuestion(
     correctForm,
     aspect: goIpfToPf ? 'pf' : 'ipf',
     verbId: sourceId,
+    targetVerbId: targetId,
   }
 }
 
