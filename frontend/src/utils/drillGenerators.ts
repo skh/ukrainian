@@ -1,6 +1,6 @@
 import { selectForm } from './forms'
 import { VerbFormData } from './gorohParser'
-import { Verb } from '../types'
+import { Verb, PairTranslation } from '../types'
 
 interface AspectPair {
   id: number
@@ -180,6 +180,67 @@ export function generateInfinitiveQuestion(
       { text: label, small: true },
     ],
   }
+}
+
+export function generateTranslationQuestion(
+  verbsMap: Map<number, Verb>,
+  fMap: Map<number, VerbForm[]>,
+  verbToPairId: Map<number, number>,
+  pairTranslations: PairTranslation[],
+  lang: string = 'de',
+): Question | null {
+  // Build pair_id → [text, ...] map for the target language
+  const transByPair = new Map<number, string[]>()
+  for (const t of pairTranslations) {
+    if (t.lang === lang) {
+      const arr = transByPair.get(t.pair_id) ?? []
+      arr.push(t.text)
+      transByPair.set(t.pair_id, arr)
+    }
+  }
+
+  // Only verbs that have a pair with at least one translation in the target lang
+  const eligible = Array.from(fMap.keys()).filter(verbId => {
+    const pairId = verbToPairId.get(verbId)
+    return pairId != null && (transByPair.get(pairId)?.length ?? 0) > 0
+  })
+  if (eligible.length === 0) return null
+
+  for (let attempts = 0; attempts < 20; attempts++) {
+    const verbId = pickRandom(eligible)
+    const verb = verbsMap.get(verbId)
+    if (!verb) continue
+
+    // Only present and future (no past, no imperative)
+    const forms = (fMap.get(verbId) ?? []).filter(
+      f => f.tense === 'present' || f.tense === 'future',
+    )
+    if (forms.length === 0) continue
+
+    const form = pickRandom(forms)
+    const correctForm = selectForm(form.form, form.tense, form.person, form.number)
+
+    const pairId = verbToPairId.get(verbId)!
+    const translationText = (transByPair.get(pairId) ?? []).join(', ')
+
+    const pronoun = getPronoun(form.tense, form.person, form.number, form.gender)
+    const isSyntheticFuture = form.tense === 'future' && verb.aspect === 'ipf'
+    const label = formLabel(form.tense, form.person, form.number, form.gender)
+    const line2 = `${pronoun} …${isSyntheticFuture ? ' (synthetic future)' : ''}`
+
+    return {
+      prompt: `[${lang}: ${translationText}] — ${label}`,
+      correctForm,
+      aspect: verb.aspect,
+      verbId,
+      display: [
+        { text: translationText, bold: true },
+        { text: line2 },
+        { text: label, small: true },
+      ],
+    }
+  }
+  return null
 }
 
 export function generateNumberQuestion(

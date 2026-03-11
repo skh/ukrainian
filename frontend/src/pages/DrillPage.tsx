@@ -10,6 +10,7 @@ import {
   generateAspectQuestion,
   generateInfinitiveQuestion,
   generateNumberQuestion,
+  generateTranslationQuestion,
   Question,
   PromptLine,
 } from '../utils/drillGenerators'
@@ -67,6 +68,7 @@ export default function DrillPage() {
   const [useAspect, setUseAspect] = useState(true)
   const [useInfinitive, setUseInfinitive] = useState(true)
   const [useNumber, setUseNumber] = useState(true)
+  const [useTranslation, setUseTranslation] = useState(true)
   const [verbScope, setVerbScope] = useState<'all' | 'selection' | 'tag'>('all')
   const [selectedPairIds, setSelectedPairIds] = useState<Set<number>>(new Set())
   const [selectedTagId, setSelectedTagId] = useState<number | null>(null)
@@ -145,6 +147,7 @@ export default function DrillPage() {
       ...(useAspect ? ['aspect'] : []),
       ...(useInfinitive ? ['infinitive'] : []),
       ...(useNumber ? ['number'] : []),
+      ...(useTranslation ? ['translation'] : []),
     ]
     if (types.length === 0) return null
     for (let attempts = 0; attempts < 20; attempts++) {
@@ -153,7 +156,9 @@ export default function DrillPage() {
         ? generateAspectQuestion(verbsMap, filteredPairs, filteredForms)
         : type === 'infinitive'
         ? generateInfinitiveQuestion(verbsMap, filteredForms)
-        : generateNumberQuestion(verbsMap, filteredForms)
+        : type === 'number'
+        ? generateNumberQuestion(verbsMap, filteredForms)
+        : generateTranslationQuestion(verbsMap, filteredForms, verbToPairId, pairTranslations)
       if (q) return q
     }
     return null
@@ -312,6 +317,15 @@ export default function DrillPage() {
             />{' '}
             Singular/plural drill
           </label>
+          <br />
+          <label>
+            <input
+              type="checkbox"
+              checked={useTranslation}
+              onChange={e => setUseTranslation(e.target.checked)}
+            />{' '}
+            Translation → form drill (de, present/future only)
+          </label>
         </div>
         <br />
         <div>
@@ -375,7 +389,7 @@ export default function DrillPage() {
         <button
           className="btn-primary"
           onClick={startDrill}
-          disabled={(!useAspect && !useInfinitive && !useNumber) || noneSelected}
+          disabled={(!useAspect && !useInfinitive && !useNumber && !useTranslation) || noneSelected}
         >
           Start
         </button>
