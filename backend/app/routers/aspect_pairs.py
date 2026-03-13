@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.crud import get_or_404
 from app.database import get_db
 from app.models.verb import AspectPair, Verb
+from app.models.word_family import Lexeme
 from app.schemas.aspect_pair import AspectPairAddPartner, AspectPairCreate, AspectPairRead, SoloPairCreate
 
 router = APIRouter(prefix="/api/aspect-pairs", tags=["aspect-pairs"])
@@ -34,6 +35,8 @@ def create_aspect_pair(data: AspectPairCreate, db: Session = Depends(get_db)):
     db.add(pair)
     db.commit()
     db.refresh(pair)
+    db.add(Lexeme(pos="pair", form=ipf_verb.infinitive, pair_id=pair.id))
+    db.commit()
     return pair
 
 
@@ -49,6 +52,8 @@ def create_solo_pair(data: SoloPairCreate, db: Session = Depends(get_db)):
     db.add(pair)
     db.commit()
     db.refresh(pair)
+    db.add(Lexeme(pos="pair", form=verb.infinitive, pair_id=pair.id))
+    db.commit()
     return pair
 
 
@@ -62,6 +67,10 @@ def add_partner_to_pair(pair_id: int, data: AspectPairAddPartner, db: Session = 
         if verb.aspect != "ipf":
             raise HTTPException(status_code=422, detail=f'Verb "{verb.accented}" is not imperfective')
         pair.ipf_verb_id = verb.id
+        # Update lexeme form to ipf infinitive now that we have it
+        lexeme = db.query(Lexeme).filter(Lexeme.pair_id == pair.id).first()
+        if lexeme:
+            lexeme.form = verb.infinitive
     elif pair.pf_verb_id is None:
         if verb.aspect != "pf":
             raise HTTPException(status_code=422, detail=f'Verb "{verb.accented}" is not perfective')
