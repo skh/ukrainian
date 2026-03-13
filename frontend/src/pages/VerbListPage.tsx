@@ -170,9 +170,11 @@ export default function VerbListPage() {
   return (
     <div>
       <h1>Verbs</h1>
-      <Link to="/verbs/add" className="btn-primary">Add verb</Link>
-      {' '}
-      <Link to="/drill" className="btn-primary">Drills</Link>
+      <Link to="/verbs/add">Add verb</Link>
+      {' | '}
+      <Link to="/drill">Drills</Link>
+      {' | '}
+      <Link to="/word-families">Word families</Link>
       <br /><br />
       <input
         value={filter}
@@ -217,6 +219,7 @@ export default function VerbListPage() {
             >
               Verb {sortKey === 'lemma' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
             </th>
+            <th style={{ color: '#888', fontWeight: 'normal', fontSize: '0.85em' }}>DE</th>
             <th>Tags</th>
             {corpora.length > 0 && (
               <th>
@@ -264,6 +267,9 @@ export default function VerbListPage() {
                 {p.ipf_verb && p.pf_verb && (
                   <span style={{ color: '#bbb' }}>)</span>
                 )}
+              </td>
+              <td style={{ color: '#555', fontSize: '0.88em', whiteSpace: 'nowrap' }}>
+                {allPairTranslations.filter(t => t.pair_id === p.id && t.lang === 'de').map(t => t.text).join(', ')}
               </td>
               <td>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.3rem' }}>
