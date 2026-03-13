@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
 import { VerbFormData } from '../utils/gorohParser'
-import { Tag, Collocation, PairTranslation, CollocTranslation, VerbFrequency, AspectPair } from '../types'
+import { Tag, Collocation, PairTranslation, CollocTranslation, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
 import { aspectBg } from '../utils/theme'
 import { gorohUrl } from '../config'
 import { TagChip } from '../widgets/TagChip'
@@ -102,6 +102,7 @@ export default function PairPage() {
   const [langs, setLangs] = useState<string[]>([])
   const [pairTranslations, setPairTranslations] = useState<PairTranslation[]>([])
   const [collocTranslations, setCollocTranslations] = useState<CollocTranslation[]>([])
+  const [wordFamilies, setWordFamilies] = useState<WordFamily[]>([])
 
   useEffect(() => {
     api.get<AspectPair>(`/aspect-pairs/${pairId}`).then(async p => {
@@ -126,6 +127,7 @@ export default function PairPage() {
       setLangs(ls)
       setPairTranslations(pts)
       setCollocTranslations(cts)
+      setWordFamilies(await api.get<WordFamily[]>(`/pairs/${pairId}/word-families`))
     })
   }, [pairId])
 
@@ -198,6 +200,14 @@ export default function PairPage() {
   async function deleteCollocTranslation(id: number) {
     await api.delete(`/colloc-translations/${id}`)
     setCollocTranslations(prev => prev.filter(x => x.id !== id))
+  }
+
+  async function createFamilyWithPair() {
+    const f = await api.post<WordFamily>('/word-families', {})
+    const lexemes = await api.get<Lexeme[]>('/lexemes')
+    const lexeme = lexemes.find(l => l.pair_id === pairId)
+    if (lexeme) await api.post(`/word-families/${f.id}/members/${lexeme.id}`, {})
+    window.location.href = `/word-families/${f.id}`
   }
 
   if (!pair) return <p>Loading…</p>
@@ -401,6 +411,32 @@ export default function PairPage() {
           />
           <button onClick={addCollocation} disabled={!newText.trim()}>Add</button>
         </div>
+      </div>
+
+      <div style={{ marginTop: '2rem' }}>
+        <h2 style={{ marginBottom: '0.5rem' }}>Word families</h2>
+        {wordFamilies.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            {wordFamilies.map(f => (
+              <div key={f.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', alignItems: 'center' }}>
+                {f.members.map(m => (
+                  m.pos === 'pair' && m.pair ? (
+                    <span key={m.id} style={{ display: 'inline-flex', gap: '0.15em', fontSize: '0.9em' }}>
+                      {m.pair.ipf_verb && <span style={{ background: aspectBg.ipf, padding: '0.1em 0.35em', borderRadius: '3px' }}>{m.pair.ipf_verb.accented}</span>}
+                      {m.pair.pf_verb && <span style={{ background: aspectBg.pf, padding: '0.1em 0.35em', borderRadius: '3px' }}>{m.pair.pf_verb.accented}</span>}
+                    </span>
+                  ) : (
+                    <span key={m.id} style={{ background: '#eee', padding: '0.1em 0.35em', borderRadius: '3px', fontSize: '0.9em' }}>
+                      {m.form} <span style={{ color: '#888', fontSize: '0.75em' }}>{m.pos}</span>
+                    </span>
+                  )
+                ))}
+                <Link to={`/word-families/${f.id}`} style={{ fontSize: '0.8em', marginLeft: '0.3rem' }}>Manage →</Link>
+              </div>
+            ))}
+          </div>
+        )}
+        <button onClick={createFamilyWithPair}>New family with this pair</button>
       </div>
     </div>
   )
