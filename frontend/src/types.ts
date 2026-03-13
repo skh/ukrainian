@@ -50,3 +50,16 @@ export interface PairTag {
   pair_id: number
   tag_id: number
 }
+
+export interface Lexeme {
+  id: number
+  pos: 'pair' | 'noun' | 'adjective' | 'adverb'
+  form: string
+  pair_id: number | null
+  pair?: AspectPair
+}
+
+export interface WordFamily {
+  id: number
+  members: Lexeme[]
+}
