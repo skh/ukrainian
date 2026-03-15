@@ -6,6 +6,7 @@ import PairPage from './pages/PairPage'
 import DrillPage from './pages/DrillPage'
 import WordFamiliesPage from './pages/WordFamiliesPage'
 import WordFamilyPage from './pages/WordFamilyPage'
+import FrequencyRefetchPage from './pages/FrequencyRefetchPage'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/drill" element={<DrillPage />} />
         <Route path="/word-families" element={<WordFamiliesPage />} />
         <Route path="/word-families/:id" element={<WordFamilyPage />} />
+        <Route path="/frequencies/refetch" element={<FrequencyRefetchPage />} />
       </Routes>
     </BrowserRouter>
   )

@@ -175,6 +175,8 @@ export default function VerbListPage() {
       <Link to="/drill">Drills</Link>
       {' | '}
       <Link to="/word-families">Word families</Link>
+      {' | '}
+      <Link to="/frequencies/refetch">Refetch frequencies</Link>
       <br /><br />
       <input
         value={filter}
