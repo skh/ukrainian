@@ -79,7 +79,7 @@ function ParadigmHint({ verb, forms, translations, partnerVerb, partnerForms }: 
           position: 'absolute', bottom: '2.5rem', right: 0,
           background: aspectBg[displayAspect], border: '1px solid #ccc', borderRadius: '4px',
           padding: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          fontSize: '70%', whiteSpace: 'nowrap',
+          fontSize: '70%', maxWidth: '90vw',
         }}>
           <div>
             {displayAspect === 'pf' && triangle}
@@ -589,7 +589,7 @@ export default function DrillPage() {
         {history.length > 0 && ` (${Math.round((score / history.length) * 100)}%)`}
       </p>
       <br />
-      <table>
+      <div style={{ overflowX: 'auto' }}><table>
         <thead>
           <tr>
             <th>Question</th>
@@ -608,7 +608,7 @@ export default function DrillPage() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
       <br />
       <button className="btn-primary" onClick={() => { setPhase('select'); setHistory([]) }} ref={newDrillRef}>
         New drill

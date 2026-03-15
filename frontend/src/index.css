@@ -15,6 +15,33 @@ body {
   border: 1px solid #ddd;
   border-radius: 6px;
   padding: 1.5rem;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 0.5rem;
+    font-size: 13pt;
+  }
+  #root > div {
+    padding: 0.75rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 600px) {
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 table {

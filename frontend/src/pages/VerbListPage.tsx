@@ -211,7 +211,7 @@ export default function VerbListPage() {
       )}
       <br />
 
-      <table>
+      <div style={{ overflowX: 'auto' }}><table>
         <thead>
           <tr>
             <th></th>
@@ -309,7 +309,7 @@ export default function VerbListPage() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
 
       {totalPages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
@@ -349,7 +349,7 @@ export default function VerbListPage() {
         return (
           <>
             <h2 style={{ marginTop: '2rem' }}>No frequency data</h2>
-            <table>
+            <div style={{ overflowX: 'auto' }}><table>
               <tbody>
                 {sorted.map(p => (
                   <tr key={p.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/pairs/${p.id}`)}>
@@ -368,7 +368,7 @@ export default function VerbListPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </>
         )
       })()}
@@ -376,7 +376,7 @@ export default function VerbListPage() {
       {sortedUnpaired.length > 0 && (
         <>
           <h2 style={{ marginTop: '2rem' }}>Unpaired verbs</h2>
-          <table>
+          <div style={{ overflowX: 'auto' }}><table>
             <thead>
               <tr>
                 <th>Imperfective</th>
@@ -399,7 +399,7 @@ export default function VerbListPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </>
       )}
     </div>

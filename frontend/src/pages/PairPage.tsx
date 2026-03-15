@@ -44,7 +44,7 @@ function TranslationRow({ lang, items, onAdd, onUpdate, onDelete }: {
               value={editText}
               onChange={e => setEditText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') commitEdit(item.id); if (e.key === 'Escape') setEditingId(null) }}
-              style={{ width: '16rem' }}
+              style={{ width: '16rem', maxWidth: '100%' }}
               autoFocus
             />
             <button onClick={() => commitEdit(item.id)}>Save</button>
@@ -66,7 +66,7 @@ function TranslationRow({ lang, items, onAdd, onUpdate, onDelete }: {
             value={newText}
             onChange={e => setNewText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') commitAdd(); if (e.key === 'Escape') { setAdding(false); setNewText('') } }}
-            style={{ width: '16rem' }}
+            style={{ width: '16rem', maxWidth: '100%' }}
             autoFocus
           />
           <button onClick={commitAdd}>Add</button>
@@ -261,7 +261,7 @@ export default function PairPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: pair.ipf_verb && pair.pf_verb ? '1fr 1fr' : '1fr', gap: '2rem', alignItems: 'start' }}>
+      <div className={pair.ipf_verb && pair.pf_verb ? 'two-col-grid' : undefined}>
         {pair.ipf_verb && (
           <div>
             <h2 style={{ marginBottom: '0.5rem' }}>
@@ -289,7 +289,7 @@ export default function PairPage() {
       {corpora.length > 0 && pair && (
         <div style={{ marginTop: '2rem' }}>
           <h2 style={{ marginBottom: '0.5rem' }}>Frequency</h2>
-          <table>
+          <div style={{ overflowX: 'auto' }}><table>
             <thead>
               <tr>
                 <th>Corpus</th>
@@ -337,7 +337,7 @@ export default function PairPage() {
                 )
               })}
             </tbody>
-          </table>
+          </table></div>
           {fetchError && <p style={{ color: '#c00', marginTop: '0.4rem' }}>{fetchError}</p>}
         </div>
       )}
@@ -358,7 +358,7 @@ export default function PairPage() {
                           if (e.key === 'Enter') saveEdit(c.id)
                           if (e.key === 'Escape') setEditingId(null)
                         }}
-                        style={{ width: '24rem' }}
+                        style={{ width: '24rem', maxWidth: '100%' }}
                         autoFocus
                       />
                       <button onClick={() => saveEdit(c.id)}>Save</button>
@@ -407,7 +407,7 @@ export default function PairPage() {
             onChange={e => setNewText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') addCollocation() }}
             placeholder="Add collocation…"
-            style={{ width: '24rem' }}
+            style={{ width: '24rem', maxWidth: '100%' }}
           />
           <button onClick={addCollocation} disabled={!newText.trim()}>Add</button>
         </div>

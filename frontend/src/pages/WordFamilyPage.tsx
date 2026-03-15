@@ -154,7 +154,7 @@ export default function WordFamilyPage() {
         value={addPairInput}
         onChange={e => setAddPairInput(e.target.value)}
         placeholder="Type a verb…"
-        style={{ width: '18rem' }}
+        style={{ width: '18rem', maxWidth: '100%' }}
       />
       <datalist id="pair-verb-list">
         {pairVerbs.flatMap(v => [
@@ -170,7 +170,7 @@ export default function WordFamilyPage() {
         onChange={e => setNewLexemeForm(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') addLexeme() }}
         placeholder="Base form (unaccented)…"
-        style={{ width: '18rem' }}
+        style={{ width: '18rem', maxWidth: '100%' }}
       />
       {' '}
       {(['noun', 'adjective', 'adverb'] as Pos[]).map(pos => (
