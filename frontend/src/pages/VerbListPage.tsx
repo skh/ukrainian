@@ -214,7 +214,7 @@ export default function VerbListPage() {
       <div style={{ overflowX: 'auto' }}><table>
         <thead>
           <tr>
-            <th></th>
+            <th className="col-mobile-hide"></th>
             <th
               style={{ cursor: 'pointer', userSelect: 'none' }}
               onClick={() => handleSort('lemma')}
@@ -222,9 +222,9 @@ export default function VerbListPage() {
               Verb {sortKey === 'lemma' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
             </th>
             <th style={{ color: '#888', fontWeight: 'normal', fontSize: '0.85em' }}>DE</th>
-            <th>Tags</th>
+            <th className="col-mobile-hide">Tags</th>
             {corpora.length > 0 && (
-              <th>
+              <th className="col-mobile-hide">
                 {corpora.map(corpus => (
                   <span
                     key={corpus}
@@ -241,7 +241,7 @@ export default function VerbListPage() {
         <tbody>
           {pagedPairs.map((p, i) => (
             <tr key={p.id}>
-              <td style={{ color: '#bbb', fontSize: '0.8em', textAlign: 'right', paddingRight: '0.5em' }}>{clampedPage * pageSize + i + 1}</td>
+              <td className="col-mobile-hide" style={{ color: '#bbb', fontSize: '0.8em', textAlign: 'right', paddingRight: '0.5em' }}>{clampedPage * pageSize + i + 1}</td>
               <td
                 style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
                 onClick={() => navigate(`/pairs/${p.id}`)}
@@ -273,7 +273,7 @@ export default function VerbListPage() {
               <td style={{ color: '#555', fontSize: '0.88em', whiteSpace: 'nowrap' }}>
                 {allPairTranslations.filter(t => t.pair_id === p.id && t.lang === 'de').map(t => t.text).join(', ')}
               </td>
-              <td>
+              <td className="col-mobile-hide">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.3rem' }}>
                   {tagsForPair(p.id).map(t => (
                     <TagChip key={t.id} tag={t} onRemove={() => removeTag(p.id, t.id)} />
@@ -289,7 +289,7 @@ export default function VerbListPage() {
                 const slots = corpora.map(corpus => corpusSlot(p, corpus))
                 const hasAny = slots.some(s => s.text !== '—')
                 return (
-                  <td style={{ fontSize: '0.8em', whiteSpace: 'nowrap' }}
+                  <td className="col-mobile-hide" style={{ fontSize: '0.8em', whiteSpace: 'nowrap' }}
                       title={corpora.map((c, i) => `${c}: ${slots[i].text}`).join('\n')}>
                     {hasAny && (
                       <>
