@@ -25,6 +25,7 @@ export interface PromptLine {
 }
 
 export interface Question {
+  type: 'aspect' | 'infinitive' | 'number' | 'translation'
   prompt: string
   correctForm: string
   aspect: 'ipf' | 'pf'
@@ -135,6 +136,7 @@ export function generateAspectQuestion(
   const correctForm = selectForm(targetMatch.form, targetMatch.tense, targetMatch.person, targetMatch.number)
 
   return {
+    type: 'aspect' as const,
     prompt: `${displaySourceForm} → change the aspect`,
     correctForm,
     aspect: goIpfToPf ? 'pf' : 'ipf',
@@ -172,6 +174,7 @@ export function generateInfinitiveQuestion(
       : `${pronoun} …${isSyntheticFuture ? ' (synthetic future)' : ''}`
 
   return {
+    type: 'infinitive' as const,
     prompt: `Give the ${label} of "${verb.accented}"`,
     correctForm,
     aspect: verb.aspect,
@@ -231,6 +234,7 @@ export function generateTranslationQuestion(
     const line2 = `${pronoun} …${isSyntheticFuture ? ' (synthetic future)' : ''}`
 
     return {
+      type: 'translation' as const,
       prompt: `[${lang}: ${translationText}] — ${label}`,
       correctForm,
       aspect: verb.aspect,
@@ -279,6 +283,7 @@ export function generateNumberQuestion(
   const correctForm = selectForm(targetMatch.form, targetMatch.tense, targetMatch.person, targetMatch.number)
 
   return {
+    type: 'number' as const,
     prompt: `${displaySource} → give the other number`,
     correctForm,
     aspect: verb.aspect,

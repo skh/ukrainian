@@ -478,6 +478,7 @@ export default function DrillPage() {
         {question && (
           <>
             {renderPrompt(question)}
+            {question.type !== 'translation' && renderTranslations(verbToPairId.get(question.verbId))}
             {typeIn ? (
               <>
                 <input
