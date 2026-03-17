@@ -63,3 +63,20 @@ export interface WordFamily {
   id: number
   members: Lexeme[]
 }
+
+export interface EntryForm {
+  id: number
+  entry_id: number
+  tags: string   // e.g. "nom,sg" or "nom,sg,m"
+  form: string
+}
+
+export interface Entry {
+  id: number
+  pos: 'noun' | 'adjective' | 'adverb'
+  lemma: string
+  accented: string
+  gender: 'm' | 'f' | 'n' | null
+  number_type: 'sg' | 'pl' | 'both' | null
+  forms?: EntryForm[]
+}
