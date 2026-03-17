@@ -4,33 +4,9 @@ import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
 import { parseGoroh, VerbFormData } from '../utils/gorohParser'
-import { Verb } from '../types'
+import { Verb, AspectPair, VerbFormRead, DerivationType, Derivation } from '../types'
 import { stripAccent } from '../utils/forms'
 
-interface VerbFormRead extends VerbFormData {
-  id: number
-  verb_id: number
-}
-
-interface AspectPair {
-  id: number
-  ipf_verb_id: number | null
-  pf_verb_id: number | null
-  ipf_verb?: Verb
-  pf_verb?: Verb
-}
-
-type DerivationType = 'prefix' | 'suffix' | 'stem_change' | 'stress_change' | 'reflexive'
-
-interface Derivation {
-  id: number
-  source_verb_id: number
-  derived_verb_id: number
-  type: DerivationType | null
-  value: string | null
-  source_verb: Verb
-  derived_verb: Verb
-}
 
 export default function EditVerbPage() {
   const { id } = useParams<{ id: string }>()

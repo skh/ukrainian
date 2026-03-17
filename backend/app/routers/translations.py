@@ -1,13 +1,18 @@
 import os
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.crud import get_or_404
 from app.database import get_db
 from app.models.verb import AspectPair, Collocation, CollocTranslation, PairTranslation
+from app.schemas.translation import (
+    CollocTranslationRead,
+    PairTranslationRead,
+    TranslationUpdate,
+    TranslationWrite,
+)
 
 router = APIRouter(tags=["translations"])
 
@@ -17,44 +22,19 @@ def configured_langs() -> list[str]:
     return [l.strip() for l in raw.split(",") if l.strip()]
 
 
-class TranslationRead(BaseModel):
-    id: int
-    pair_id: int
-    lang: str
-    text: str
-    model_config = {"from_attributes": True}
-
-
-class CollocTranslationRead(BaseModel):
-    id: int
-    collocation_id: int
-    lang: str
-    text: str
-    model_config = {"from_attributes": True}
-
-
-class TranslationWrite(BaseModel):
-    lang: str
-    text: str
-
-
-class TranslationUpdate(BaseModel):
-    text: str
-
-
 @router.get("/api/languages", response_model=list[str])
 def list_languages():
     return configured_langs()
 
 
-@router.get("/api/pair-translations", response_model=list[TranslationRead])
+@router.get("/api/pair-translations", response_model=list[PairTranslationRead])
 def list_all_pair_translations(db: Session = Depends(get_db)):
     return db.execute(select(PairTranslation).order_by(PairTranslation.pair_id, PairTranslation.lang)).scalars().all()
 
 
 # --- Pair translations ---
 
-@router.get("/api/pairs/{pair_id}/translations", response_model=list[TranslationRead])
+@router.get("/api/pairs/{pair_id}/translations", response_model=list[PairTranslationRead])
 def get_pair_translations(pair_id: int, db: Session = Depends(get_db)):
     get_or_404(db, AspectPair, pair_id)
     return db.execute(
@@ -64,7 +44,7 @@ def get_pair_translations(pair_id: int, db: Session = Depends(get_db)):
     ).scalars().all()
 
 
-@router.post("/api/pairs/{pair_id}/translations", response_model=TranslationRead, status_code=201)
+@router.post("/api/pairs/{pair_id}/translations", response_model=PairTranslationRead, status_code=201)
 def create_pair_translation(pair_id: int, data: TranslationWrite, db: Session = Depends(get_db)):
     get_or_404(db, AspectPair, pair_id)
     t = PairTranslation(pair_id=pair_id, lang=data.lang, text=data.text.strip())
@@ -74,7 +54,7 @@ def create_pair_translation(pair_id: int, data: TranslationWrite, db: Session = 
     return t
 
 
-@router.put("/api/pair-translations/{translation_id}", response_model=TranslationRead)
+@router.put("/api/pair-translations/{translation_id}", response_model=PairTranslationRead)
 def update_pair_translation(translation_id: int, data: TranslationUpdate, db: Session = Depends(get_db)):
     t = get_or_404(db, PairTranslation, translation_id)
     t.text = data.text.strip()

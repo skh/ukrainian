@@ -3,11 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { parseNoun, ParsedNoun } from '../utils/nounParser'
 import { Nav } from '../components/Nav'
-
-const CASE_LABELS: Record<string, string> = {
-  nom: 'Nom', gen: 'Gen', dat: 'Dat', acc: 'Acc', ins: 'Ins', loc: 'Loc', voc: 'Voc',
-}
-const CASES = ['nom', 'gen', 'dat', 'acc', 'ins', 'loc', 'voc'] as const
+import { CASE_LABELS, CASES } from '../utils/nouns'
 
 export default function AddNounPage() {
   const navigate = useNavigate()

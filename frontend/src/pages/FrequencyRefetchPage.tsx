@@ -2,14 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { api } from '../api/client'
-
-interface AspectPair {
-  id: number
-  ipf_verb_id: number | null
-  pf_verb_id: number | null
-  ipf_verb?: { accented: string }
-  pf_verb?: { accented: string }
-}
+import { AspectPair } from '../types'
 
 const DELAY_MS = 2000 // 2 s between pairs — polite Sketch Engine usage
 

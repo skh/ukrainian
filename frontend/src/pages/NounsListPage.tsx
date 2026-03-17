@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { Entry } from '../types'
 import { Nav } from '../components/Nav'
-
-const genderBg: Record<string, string> = { m: '#dbeafe', f: '#fce7f3', n: '#d1fae5' }
+import { genderBg } from '../utils/nouns'
 
 export default function NounsListPage() {
   const [nouns, setNouns] = useState<Entry[]>([])

@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -9,18 +8,9 @@ from app.crud import get_or_404
 from app.database import get_db
 from app.models.verb import AspectPair, Verb, VerbFrequency
 from app import sketchengine
+from app.schemas.frequency import FrequencyRead
 
 router = APIRouter(tags=["frequencies"])
-
-
-class FrequencyRead(BaseModel):
-    id: int
-    verb_id: int
-    corpus: str
-    ipm: float
-    fetched_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 def _strip_accent(s: str) -> str:

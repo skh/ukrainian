@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -10,7 +11,9 @@ router = APIRouter()
 
 
 def _get_or_create_lexeme(db: Session, lemma: str) -> Lexeme:
-    existing = db.query(Lexeme).filter(Lexeme.pos == 'noun', Lexeme.form == lemma).first()
+    existing = db.execute(
+        select(Lexeme).where(Lexeme.pos == 'noun', Lexeme.form == lemma)
+    ).scalar_one_or_none()
     if existing:
         return existing
     lexeme = Lexeme(pos='noun', form=lemma)
@@ -22,15 +25,13 @@ def _get_or_create_lexeme(db: Session, lemma: str) -> Lexeme:
 @router.get("/api/nouns", response_model=list[EntryRead])
 def list_nouns(with_forms: bool = False, db: Session = Depends(get_db)):
     # Backfill: noun lexemes with no entry (never linked, or entry was deleted).
-    existing_entry_ids = db.query(Entry.id).filter(Entry.pos == 'noun').scalar_subquery()
-    orphans = (
-        db.query(Lexeme)
-        .filter(
+    existing_entry_ids = db.execute(select(Entry.id).where(Entry.pos == 'noun')).scalars().all()
+    orphans = db.execute(
+        select(Lexeme).where(
             Lexeme.pos == 'noun',
             (Lexeme.entry_id.is_(None)) | (~Lexeme.entry_id.in_(existing_entry_ids))
         )
-        .all()
-    )
+    ).scalars().all()
     for lex in orphans:
         lex.entry_id = None  # clear dangling reference before re-creating
     for lex in orphans:
@@ -41,7 +42,9 @@ def list_nouns(with_forms: bool = False, db: Session = Depends(get_db)):
     if orphans:
         db.commit()
 
-    entries = db.query(Entry).filter(Entry.pos == 'noun').order_by(Entry.lemma).all()
+    entries = db.execute(
+        select(Entry).where(Entry.pos == 'noun').order_by(Entry.lemma)
+    ).scalars().all()
     if not with_forms:
         for e in entries:
             e.forms = []
@@ -50,7 +53,9 @@ def list_nouns(with_forms: bool = False, db: Session = Depends(get_db)):
 
 @router.get("/api/nouns/{noun_id}", response_model=EntryRead)
 def get_noun(noun_id: int, db: Session = Depends(get_db)):
-    entry = db.query(Entry).filter(Entry.id == noun_id, Entry.pos == 'noun').first()
+    entry = db.execute(
+        select(Entry).where(Entry.id == noun_id, Entry.pos == 'noun')
+    ).scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Noun not found")
     return entry
@@ -60,7 +65,9 @@ def get_noun(noun_id: int, db: Session = Depends(get_db)):
 def create_noun(data: EntryCreate, db: Session = Depends(get_db)):
     lexeme = _get_or_create_lexeme(db, data.lemma)
     if lexeme.entry_id:
-        existing = db.query(Entry).filter(Entry.id == lexeme.entry_id).first()
+        existing = db.execute(
+            select(Entry).where(Entry.id == lexeme.entry_id)
+        ).scalar_one_or_none()
         # Stub entries (no gender, no forms) are upgraded silently — they were
         # auto-created from word-family lexemes and have no real data yet.
         is_stub = existing.gender is None and not existing.forms
@@ -94,7 +101,9 @@ def create_noun(data: EntryCreate, db: Session = Depends(get_db)):
 
 @router.patch("/api/nouns/{noun_id}", response_model=EntryRead)
 def update_noun(noun_id: int, data: EntryUpdate, db: Session = Depends(get_db)):
-    entry = db.query(Entry).filter(Entry.id == noun_id, Entry.pos == 'noun').first()
+    entry = db.execute(
+        select(Entry).where(Entry.id == noun_id, Entry.pos == 'noun')
+    ).scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Noun not found")
     entry.gender = data.gender
@@ -106,10 +115,14 @@ def update_noun(noun_id: int, data: EntryUpdate, db: Session = Depends(get_db)):
 
 @router.put("/api/nouns/{noun_id}/forms", response_model=EntryRead)
 def replace_forms(noun_id: int, forms: list[EntryFormCreate], db: Session = Depends(get_db)):
-    entry = db.query(Entry).filter(Entry.id == noun_id, Entry.pos == 'noun').first()
+    entry = db.execute(
+        select(Entry).where(Entry.id == noun_id, Entry.pos == 'noun')
+    ).scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Noun not found")
-    db.query(EntryForm).filter(EntryForm.entry_id == noun_id).delete()
+    db.execute(
+        EntryForm.__table__.delete().where(EntryForm.entry_id == noun_id)
+    )
     for f in forms:
         db.add(EntryForm(entry_id=noun_id, tags=f.tags, form=f.form))
     db.commit()
@@ -119,10 +132,14 @@ def replace_forms(noun_id: int, forms: list[EntryFormCreate], db: Session = Depe
 
 @router.delete("/api/nouns/{noun_id}", status_code=204)
 def delete_noun(noun_id: int, db: Session = Depends(get_db)):
-    entry = db.query(Entry).filter(Entry.id == noun_id, Entry.pos == 'noun').first()
+    entry = db.execute(
+        select(Entry).where(Entry.id == noun_id, Entry.pos == 'noun')
+    ).scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Noun not found")
-    lexeme = db.query(Lexeme).filter(Lexeme.entry_id == noun_id).first()
+    lexeme = db.execute(
+        select(Lexeme).where(Lexeme.entry_id == noun_id)
+    ).scalar_one_or_none()
     if lexeme:
         db.delete(lexeme)
     db.delete(entry)

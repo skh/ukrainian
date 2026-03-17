@@ -4,12 +4,7 @@ import { api } from '../api/client'
 import { Entry } from '../types'
 import { parseNoun } from '../utils/nounParser'
 import { Nav } from '../components/Nav'
-
-const CASE_LABELS: Record<string, string> = {
-  nom: 'Nom', gen: 'Gen', dat: 'Dat', acc: 'Acc', ins: 'Ins', loc: 'Loc', voc: 'Voc',
-}
-const CASES = ['nom', 'gen', 'dat', 'acc', 'ins', 'loc', 'voc'] as const
-const genderBg: Record<string, string> = { m: '#dbeafe', f: '#fce7f3', n: '#d1fae5' }
+import { CASE_LABELS, CASES, genderBg } from '../utils/nouns'
 
 export default function NounPage() {
   const { id } = useParams<{ id: string }>()

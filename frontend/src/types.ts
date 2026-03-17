@@ -64,6 +64,28 @@ export interface WordFamily {
   members: Lexeme[]
 }
 
+export type DerivationType = 'prefix' | 'suffix' | 'stem_change' | 'stress_change' | 'reflexive'
+
+export interface VerbFormRead {
+  id: number
+  verb_id: number
+  tense: 'present' | 'future' | 'past' | 'imperative'
+  person: '1' | '2' | '3' | null
+  number: 'singular' | 'plural' | null
+  gender: 'masculine' | 'feminine' | 'neuter' | null
+  form: string
+}
+
+export interface Derivation {
+  id: number
+  source_verb_id: number
+  derived_verb_id: number
+  type: DerivationType | null
+  value: string | null
+  source_verb: Verb
+  derived_verb: Verb
+}
+
 export interface EntryForm {
   id: number
   entry_id: number

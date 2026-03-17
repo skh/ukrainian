@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { stripAccent } from '../utils/forms'
-import { VerbFormData } from '../utils/gorohParser'
-import { Verb, Tag, PairTranslation } from '../types'
+import { Verb, Tag, PairTranslation, AspectPair, VerbFormReadRead } from '../types'
 import { aspectBg } from '../utils/theme'
 import { FormsTable } from '../components/FormsTable'
 import {
@@ -18,21 +17,6 @@ import {
   PromptLine,
 } from '../utils/drillGenerators'
 
-interface AspectPair {
-  id: number
-  ipf_verb_id: number
-  pf_verb_id: number
-}
-
-interface VerbForm {
-  id: number
-  verb_id: number
-  tense: VerbFormData['tense']
-  person: VerbFormData['person']
-  number: VerbFormData['number']
-  gender: VerbFormData['gender']
-  form: string
-}
 
 type Phase = 'select' | 'asking' | 'revealing' | 'reviewing' | 'summary'
 
@@ -46,10 +30,10 @@ interface HistoryEntry {
 
 function ParadigmHint({ verb, forms, translations, partnerVerb, partnerForms }: {
   verb: Verb
-  forms: VerbForm[]
+  forms: VerbFormRead[]
   translations: PairTranslation[]
   partnerVerb?: Verb
-  partnerForms?: VerbForm[]
+  partnerForms?: VerbFormRead[]
 }) {
   const [show, setShow] = useState(false)
   const [showPartner, setShowPartner] = useState(false)
@@ -149,7 +133,7 @@ export default function DrillPage() {
 
   const [verbs, setVerbs] = useState<Verb[]>([])
   const [pairs, setPairs] = useState<AspectPair[]>([])
-  const [formsByVerbId, setFormsByVerbId] = useState<Map<number, VerbForm[]>>(new Map())
+  const [formsByVerbId, setFormsByVerbId] = useState<Map<number, VerbFormRead[]>>(new Map())
   const [allTags, setAllTags] = useState<Tag[]>([])
   const [pairTags, setPairTags] = useState<Array<{ pair_id: number; tag_id: number }>>([])
   const [pairTranslations, setPairTranslations] = useState<PairTranslation[]>([])
@@ -167,14 +151,14 @@ export default function DrillPage() {
     Promise.all([
       api.get<Verb[]>('/verbs'),
       api.get<AspectPair[]>('/aspect-pairs'),
-      api.get<VerbForm[]>('/verb-forms'),
+      api.get<VerbFormRead[]>('/verb-forms'),
       api.get<Tag[]>('/tags'),
       api.get<Array<{ pair_id: number; tag_id: number }>>('/pair-tags'),
       api.get<PairTranslation[]>('/pair-translations'),
     ]).then(([vs, ps, fs, tags, pts, trs]) => {
       setVerbs(vs)
       setPairs(ps)
-      const map = new Map<number, VerbForm[]>()
+      const map = new Map<number, VerbFormRead[]>()
       for (const f of fs) {
         const arr = map.get(f.verb_id) ?? []
         arr.push(f)
@@ -186,8 +170,8 @@ export default function DrillPage() {
       setPairTranslations(trs)
       const v2p = new Map<number, number>()
       for (const p of ps) {
-        v2p.set(p.ipf_verb_id, p.id)
-        v2p.set(p.pf_verb_id, p.id)
+        if (p.ipf_verb_id !== null) v2p.set(p.ipf_verb_id, p.id)
+        if (p.pf_verb_id !== null) v2p.set(p.pf_verb_id, p.id)
       }
       setVerbToPairId(v2p)
     })
