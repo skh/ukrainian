@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
 import { parseGoroh, VerbFormData } from '../utils/gorohParser'
@@ -238,7 +239,7 @@ async function editForm(id: number, value: string) {
 
   return (
     <div>
-      <Link to="/">← Back to verb list</Link>
+      <Nav />
       <h1>{verb.accented} ({verb.aspect})</h1>
 
       <h2>Verb</h2>

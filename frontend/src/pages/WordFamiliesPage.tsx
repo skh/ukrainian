@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { WordFamily, Lexeme } from '../types'
 import { aspectBg } from '../utils/theme'
@@ -55,7 +56,7 @@ export default function WordFamiliesPage() {
 
   return (
     <div>
-      <Link to="/">← Back</Link>
+      <Nav />
       <h1>Word Families</h1>
       <button className="btn-primary" onClick={createFamily}>New family</button>
       {families.length > 0 && (

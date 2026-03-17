@@ -7,6 +7,7 @@ import { aspectBg } from '../utils/theme'
 import { TagChip } from '../widgets/TagChip'
 import { TagPicker } from '../widgets/TagPicker'
 import { tagColor } from '../widgets/tagColor'
+import { Nav } from '../components/Nav'
 
 export default function VerbListPage() {
   const navigate = useNavigate()
@@ -169,14 +170,9 @@ export default function VerbListPage() {
 
   return (
     <div>
+      <Nav />
       <h1>Verbs</h1>
       <Link to="/verbs/add">Add verb</Link>
-      {' | '}
-      <Link to="/drill">Drills</Link>
-      {' | '}
-      <Link to="/word-families">Word families</Link>
-      {' | '}
-      <Link to="/frequencies/refetch">Refetch frequencies</Link>
       <br /><br />
       <input
         value={filter}

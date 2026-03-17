@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { parseGoroh, VerbFormData } from '../utils/gorohParser'
 import { FormsTable } from '../components/FormsTable'
@@ -91,7 +92,7 @@ export default function AddVerbPage() {
 
   return (
     <div>
-      <Link to="/">← Back to verb list</Link>
+      <Nav />
       <h1>Add Verb</h1>
 
       <h2>Import from goroh.pp.ua</h2>

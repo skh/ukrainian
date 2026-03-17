@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
+import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { stripAccent } from '../utils/forms'
 import { VerbFormData } from '../utils/gorohParser'
@@ -348,8 +349,8 @@ export default function DrillPage() {
       || (verbScope === 'tag' && selectedTagId === null)
     return (
       <div>
-        <h1>Verb Drills</h1>
-        <Link to="/">← Back</Link>
+        <Nav />
+      <h1>Verb Drills</h1>
         <br /><br />
         <div>
           <label>
@@ -620,7 +621,7 @@ export default function DrillPage() {
         </>
       )}
       {' '}
-      <Link to="/">Back to verbs</Link>
+      <Link to="/">← Verbs</Link>
     </div>
   )
 }

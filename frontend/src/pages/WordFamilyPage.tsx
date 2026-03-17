@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { WordFamily, Lexeme, Verb, AspectPair } from '../types'
 import { aspectBg } from '../utils/theme'
@@ -137,7 +138,7 @@ export default function WordFamilyPage() {
 
   return (
     <div>
-      <Link to="/word-families">← Word families</Link>
+      <Nav />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', margin: '1.5rem 0 1rem' }}>
         {family.members.length === 0

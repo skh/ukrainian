@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
 import { VerbFormData } from '../utils/gorohParser'
@@ -214,7 +215,7 @@ export default function PairPage() {
 
   return (
     <div>
-      <Link to="/">← Back</Link>
+      <Nav />
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', margin: '1rem 0 0.25rem' }}>
         <h1 style={{ margin: 0 }}>

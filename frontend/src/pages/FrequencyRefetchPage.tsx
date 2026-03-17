@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 
 interface AspectPair {
@@ -67,8 +68,8 @@ export default function FrequencyRefetchPage() {
 
   return (
     <div>
+      <Nav />
       <h1>Refetch frequencies</h1>
-      <Link to="/">← Back</Link>
       <br /><br />
 
       <div>
