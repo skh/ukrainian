@@ -16,9 +16,13 @@ class ChunkLinkRead(BaseModel):
     id: int
     chunk_id: int
     lexeme_id: Optional[int]
-    # display info resolved from the lexeme
     lexeme_pos: Optional[str] = None
     lexeme_form: Optional[str] = None
+    # for verbs: pair_id + label "ipf / pf"
+    pair_id: Optional[int] = None
+    pair_label: Optional[str] = None
+    # for nouns/other entries: entry_id
+    entry_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

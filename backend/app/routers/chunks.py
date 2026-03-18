@@ -31,10 +31,12 @@ def _strip_accent(s: str) -> str:
 
 
 def _chunk_query():
-    """Base query that eagerly loads translations and links (with lexeme)."""
+    """Base query that eagerly loads translations and links (with lexeme → pair → verbs)."""
+    link_chain = selectinload(Chunk.links).selectinload(ChunkLink.lexeme)
     return select(Chunk).options(
         selectinload(Chunk.translations),
-        selectinload(Chunk.links).selectinload(ChunkLink.lexeme),
+        link_chain.selectinload(Lexeme.pair).selectinload(AspectPair.ipf_verb),
+        link_chain.selectinload(Lexeme.pair).selectinload(AspectPair.pf_verb),
     )
 
 
@@ -42,12 +44,26 @@ def _to_chunk_read(chunk: Chunk) -> ChunkRead:
     links = []
     for lnk in chunk.links:
         lex = lnk.lexeme
+        pair_id = None
+        pair_label = None
+        entry_id = None
+        if lex:
+            pair_id = lex.pair_id
+            entry_id = lex.entry_id
+            if lex.pair:
+                parts = [
+                    v.accented for v in [lex.pair.ipf_verb, lex.pair.pf_verb] if v
+                ]
+                pair_label = ' / '.join(parts) if parts else lex.form
         links.append(ChunkLinkRead(
             id=lnk.id,
             chunk_id=lnk.chunk_id,
             lexeme_id=lnk.lexeme_id,
             lexeme_pos=lex.pos if lex else None,
             lexeme_form=lex.form if lex else None,
+            pair_id=pair_id,
+            pair_label=pair_label,
+            entry_id=entry_id,
         ))
     return ChunkRead(
         id=chunk.id,

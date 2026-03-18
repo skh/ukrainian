@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { Chunk, SuggestedLink } from '../types'
 import { Nav } from '../components/Nav'
@@ -200,7 +200,17 @@ export default function ChunkPage() {
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem' }}>
           {chunk.links.map(l => (
             <li key={l.id} style={{ marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontStyle: 'italic' }}>{l.lexeme_form ?? '?'}</span>
+              {l.pair_id ? (
+                <Link to={`/pairs/${l.pair_id}`} style={{ fontStyle: 'italic' }}>
+                  {l.pair_label ?? l.lexeme_form ?? '?'}
+                </Link>
+              ) : l.entry_id ? (
+                <Link to={`/nouns/${l.entry_id}`} style={{ fontStyle: 'italic' }}>
+                  {l.lexeme_form ?? '?'}
+                </Link>
+              ) : (
+                <span style={{ fontStyle: 'italic' }}>{l.lexeme_form ?? '?'}</span>
+              )}
               <span style={{ color: '#888', fontSize: '0.85em' }}>({l.lexeme_pos})</span>
               <button onClick={() => removeLink(l.id)} style={{ fontSize: '0.75em', color: '#c00' }}>×</button>
             </li>

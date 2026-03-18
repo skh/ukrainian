@@ -46,6 +46,9 @@ export interface ChunkLink {
   lexeme_id: number | null
   lexeme_pos: string | null
   lexeme_form: string | null
+  pair_id: number | null
+  pair_label: string | null
+  entry_id: number | null
 }
 
 export interface Chunk {
