@@ -33,17 +33,35 @@ export interface PairTranslation {
   text: string
 }
 
-export interface CollocTranslation {
+export interface ChunkTranslation {
   id: number
-  collocation_id: number
+  chunk_id: number
   lang: string
   text: string
 }
 
-export interface Collocation {
+export interface ChunkLink {
   id: number
-  pair_id: number
+  chunk_id: number
+  lexeme_id: number | null
+  lexeme_pos: string | null
+  lexeme_form: string | null
+}
+
+export interface Chunk {
+  id: number
+  lang: string
   text: string
+  notes: string | null
+  translations: ChunkTranslation[]
+  links: ChunkLink[]
+}
+
+export interface SuggestedLink {
+  lexeme_id: number
+  lexeme_pos: string
+  lexeme_form: string
+  matched_form: string
 }
 
 export interface PairTag {

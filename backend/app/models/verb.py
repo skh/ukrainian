@@ -63,28 +63,11 @@ class VerbFrequency(Base):
     )
 
 
-class Collocation(Base):
-    __tablename__ = "collocations"
-
-    id = Column(Integer, primary_key=True)
-    pair_id = Column(Integer, ForeignKey("aspect_pairs.id", ondelete="CASCADE"), nullable=False)
-    text = Column(String, nullable=False)
-
-
 class PairTranslation(Base):
     __tablename__ = "pair_translations"
 
     id = Column(Integer, primary_key=True)
     pair_id = Column(Integer, ForeignKey("aspect_pairs.id", ondelete="CASCADE"), nullable=False)
-    lang = Column(String, nullable=False)
-    text = Column(String, nullable=False)
-
-
-class CollocTranslation(Base):
-    __tablename__ = "collocation_translations"
-
-    id = Column(Integer, primary_key=True)
-    collocation_id = Column(Integer, ForeignKey("collocations.id", ondelete="CASCADE"), nullable=False)
     lang = Column(String, nullable=False)
     text = Column(String, nullable=False)
 

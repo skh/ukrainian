@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { stripAccent } from '../utils/forms'
-import { Verb, Tag, PairTranslation, AspectPair, VerbFormReadRead } from '../types'
+import { Verb, Tag, PairTranslation, AspectPair, VerbFormRead } from '../types'
 import { aspectBg } from '../utils/theme'
 import { FormsTable } from '../components/FormsTable'
 import {
@@ -325,8 +325,8 @@ export default function DrillPage() {
   if (phase === 'select') {
     const verbsMap = new Map(verbs.map(v => [v.id, v]))
     const sortedPairs = [...pairs].sort((a, b) => {
-      const aKey = stripAccent(verbsMap.get(a.ipf_verb_id)?.accented ?? '')
-      const bKey = stripAccent(verbsMap.get(b.ipf_verb_id)?.accented ?? '')
+      const aKey = stripAccent(verbsMap.get(a.ipf_verb_id ?? -1)?.accented ?? '')
+      const bKey = stripAccent(verbsMap.get(b.ipf_verb_id ?? -1)?.accented ?? '')
       return aKey.localeCompare(bKey, 'uk')
     })
     const noneSelected = (verbScope === 'selection' && selectedPairIds.size === 0)
@@ -420,8 +420,8 @@ export default function DrillPage() {
             <button onClick={() => setSelectedPairIds(new Set())}>Select none</button>
             <div style={{ marginTop: '0.5rem', lineHeight: '1.8' }}>
               {sortedPairs.map(p => {
-                const ipf = verbsMap.get(p.ipf_verb_id)
-                const pf = verbsMap.get(p.pf_verb_id)
+                const ipf = p.ipf_verb_id != null ? verbsMap.get(p.ipf_verb_id) : undefined
+                const pf = p.pf_verb_id != null ? verbsMap.get(p.pf_verb_id) : undefined
                 if (!ipf || !pf) return null
                 return (
                   <label key={p.id} style={{ display: 'block' }}>

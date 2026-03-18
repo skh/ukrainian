@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
 import { VerbFormData } from '../utils/gorohParser'
-import { Tag, Collocation, PairTranslation, CollocTranslation, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
+import { Tag, Chunk, PairTranslation, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
 import { aspectBg } from '../utils/theme'
 import { gorohUrl } from '../config'
 import { TagChip } from '../widgets/TagChip'
@@ -89,11 +89,7 @@ export default function PairPage() {
   const [ipfForms, setIpfForms] = useState<VerbFormData[]>([])
   const [pfForms, setPfForms] = useState<VerbFormData[]>([])
   const [tags, setTags] = useState<Tag[]>([])
-  const [collocations, setCollocations] = useState<Collocation[]>([])
-  const [newText, setNewText] = useState('')
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [editText, setEditText] = useState('')
-  const addInputRef = useRef<HTMLInputElement>(null)
+  const [chunks, setChunks] = useState<Chunk[]>([])
 
   const [corpora, setCorpora] = useState<string[]>([])
   const [frequencies, setFrequencies] = useState<VerbFrequency[]>([])
@@ -102,32 +98,29 @@ export default function PairPage() {
 
   const [langs, setLangs] = useState<string[]>([])
   const [pairTranslations, setPairTranslations] = useState<PairTranslation[]>([])
-  const [collocTranslations, setCollocTranslations] = useState<CollocTranslation[]>([])
   const [wordFamilies, setWordFamilies] = useState<WordFamily[]>([])
 
   useEffect(() => {
     api.get<AspectPair>(`/aspect-pairs/${pairId}`).then(async p => {
       setPair(p)
-      const [ipf, pf, ts, cs, corp, freqs, ls, pts, cts] = await Promise.all([
+      const [ipf, pf, ts, cks, corp, freqs, ls, pts] = await Promise.all([
         p.ipf_verb_id != null ? api.get<VerbFormData[]>(`/verb-forms/${p.ipf_verb_id}`) : Promise.resolve([]),
         p.pf_verb_id != null ? api.get<VerbFormData[]>(`/verb-forms/${p.pf_verb_id}`) : Promise.resolve([]),
         api.get<Tag[]>(`/pairs/${pairId}/tags`),
-        api.get<Collocation[]>(`/pairs/${pairId}/collocations`),
+        api.get<Chunk[]>(`/pairs/${pairId}/chunks`),
         api.get<string[]>('/corpora'),
         api.get<VerbFrequency[]>(`/pairs/${pairId}/frequencies`),
         api.get<string[]>('/languages'),
         api.get<PairTranslation[]>(`/pairs/${pairId}/translations`),
-        api.get<CollocTranslation[]>(`/pairs/${pairId}/collocation-translations`),
       ])
       setIpfForms(ipf)
       setPfForms(pf)
       setTags(ts)
-      setCollocations(cs)
+      setChunks(cks)
       setCorpora(corp)
       setFrequencies(freqs)
       setLangs(ls)
       setPairTranslations(pts)
-      setCollocTranslations(cts)
       setWordFamilies(await api.get<WordFamily[]>(`/pairs/${pairId}/word-families`))
     })
   }, [pairId])
@@ -151,28 +144,6 @@ export default function PairPage() {
     }
   }
 
-  async function addCollocation() {
-    const text = newText.trim()
-    if (!text) return
-    const c = await api.post<Collocation>(`/pairs/${pairId}/collocations`, { text })
-    setCollocations(prev => [...prev, c])
-    setNewText('')
-  }
-
-  async function saveEdit(id: number) {
-    const text = editText.trim()
-    if (!text) return
-    const c = await api.put<Collocation>(`/collocations/${id}`, { text })
-    setCollocations(prev => prev.map(x => x.id === id ? c : x))
-    setEditingId(null)
-  }
-
-  async function deleteCollocation(id: number) {
-    await api.delete(`/collocations/${id}`)
-    setCollocations(prev => prev.filter(x => x.id !== id))
-    setCollocTranslations(prev => prev.filter(x => x.collocation_id !== id))
-  }
-
   async function addPairTranslation(lang: string, text: string) {
     const t = await api.post<PairTranslation>(`/pairs/${pairId}/translations`, { lang, text })
     setPairTranslations(prev => [...prev, t])
@@ -186,21 +157,6 @@ export default function PairPage() {
   async function deletePairTranslation(id: number) {
     await api.delete(`/pair-translations/${id}`)
     setPairTranslations(prev => prev.filter(x => x.id !== id))
-  }
-
-  async function addCollocTranslation(collocId: number, lang: string, text: string) {
-    const t = await api.post<CollocTranslation>(`/collocations/${collocId}/translations`, { lang, text })
-    setCollocTranslations(prev => [...prev, t])
-  }
-
-  async function updateCollocTranslation(id: number, text: string) {
-    const t = await api.put<CollocTranslation>(`/colloc-translations/${id}`, { text })
-    setCollocTranslations(prev => prev.map(x => x.id === id ? t : x))
-  }
-
-  async function deleteCollocTranslation(id: number) {
-    await api.delete(`/colloc-translations/${id}`)
-    setCollocTranslations(prev => prev.filter(x => x.id !== id))
   }
 
   async function createFamilyWithPair() {
@@ -344,56 +300,22 @@ export default function PairPage() {
       )}
 
       <div style={{ marginTop: '2rem' }}>
-        <h2 style={{ marginBottom: '0.5rem' }}>Collocations</h2>
-        {collocations.length > 0 && (
+        <h2 style={{ marginBottom: '0.5rem' }}>Chunks</h2>
+        {chunks.length > 0 && (
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem' }}>
-            {collocations.map(c => (
-              <li key={c.id} style={{ marginBottom: '0.6rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {editingId === c.id ? (
-                    <>
-                      <input
-                        value={editText}
-                        onChange={e => setEditText(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') saveEdit(c.id)
-                          if (e.key === 'Escape') setEditingId(null)
-                        }}
-                        style={{ width: '24rem', maxWidth: '100%' }}
-                        autoFocus
-                      />
-                      <button onClick={() => saveEdit(c.id)}>Save</button>
-                      <button onClick={() => setEditingId(null)}>Cancel</button>
-                    </>
-                  ) : (
-                    <>
-                      <span>{c.text}</span>
-                      <button
-                        onClick={() => { setEditingId(c.id); setEditText(c.text) }}
-                        style={{ fontSize: '0.75em', padding: '0.1em 0.4em' }}
-                      >
-                        edit
-                      </button>
-                      <button
-                        onClick={() => deleteCollocation(c.id)}
-                        style={{ fontSize: '0.75em', padding: '0.1em 0.4em', color: '#c00' }}
-                      >
-                        ×
-                      </button>
-                    </>
-                  )}
+            {chunks.map(c => (
+              <li key={c.id} style={{ marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75em', color: '#888' }}>[{c.lang}]</span>
+                  <span>{c.text}</span>
+                  <Link to={`/chunks/${c.id}`} style={{ fontSize: '0.75em' }}>edit</Link>
                 </div>
-                {langs.length > 0 && (
-                  <div style={{ marginLeft: '1rem', marginTop: '0.2rem' }}>
-                    {langs.map(lang => (
-                      <TranslationRow
-                        key={lang}
-                        lang={lang}
-                        items={collocTranslations.filter(t => t.collocation_id === c.id && t.lang === lang)}
-                        onAdd={text => addCollocTranslation(c.id, lang, text)}
-                        onUpdate={(id, text) => updateCollocTranslation(id, text)}
-                        onDelete={id => deleteCollocTranslation(id)}
-                      />
+                {c.translations.length > 0 && (
+                  <div style={{ marginLeft: '1rem', marginTop: '0.15rem', fontSize: '0.85em', color: '#555' }}>
+                    {c.translations.map(t => (
+                      <span key={t.id} style={{ marginRight: '0.75rem' }}>
+                        <span style={{ color: '#888' }}>{t.lang}:</span> {t.text}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -401,17 +323,7 @@ export default function PairPage() {
             ))}
           </ul>
         )}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input
-            ref={addInputRef}
-            value={newText}
-            onChange={e => setNewText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') addCollocation() }}
-            placeholder="Add collocation…"
-            style={{ width: '24rem', maxWidth: '100%' }}
-          />
-          <button onClick={addCollocation} disabled={!newText.trim()}>Add</button>
-        </div>
+        <Link to={`/chunks/add`} style={{ fontSize: '0.9em' }}>+ Add chunk</Link>
       </div>
 
       <div style={{ marginTop: '2rem' }}>

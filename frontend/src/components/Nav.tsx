@@ -9,6 +9,8 @@ export function Nav() {
       {' | '}
       <Link to="/drill">Drills</Link>
       {' | '}
+      <Link to="/chunks">Chunks</Link>
+      {' | '}
       <Link to="/word-families">Word families</Link>
       {' | '}
       <Link to="/frequencies/refetch">Refetch frequencies</Link>
