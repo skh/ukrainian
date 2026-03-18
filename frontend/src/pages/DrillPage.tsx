@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { stripAccent } from '../utils/forms'
-import { Verb, Tag, PairTranslation, AspectPair, VerbFormRead } from '../types'
+import { Verb, Tag, PairTranslation, AspectPair, VerbFormRead, Chunk } from '../types'
 import { aspectBg } from '../utils/theme'
 import { FormsTable } from '../components/FormsTable'
 import {
@@ -20,12 +20,26 @@ import {
 
 type Phase = 'select' | 'asking' | 'revealing' | 'reviewing' | 'summary'
 
+interface ChunkQuestion {
+  chunkId: number
+  prompt: string
+  promptLang: string
+  answer: string
+  answerLang: string
+  notes: string | null
+}
+
+function isChunkQ(q: Question | ChunkQuestion): q is ChunkQuestion {
+  return 'chunkId' in q
+}
+
 interface HistoryEntry {
   prompt: string
   userAnswer: string
   correctAnswer: string
   correct: boolean
   pairId?: number
+  isChunk?: boolean
 }
 
 function ParadigmHint({ verb, forms, translations, partnerVerb, partnerForms }: {
@@ -131,6 +145,15 @@ export default function DrillPage() {
   const [selectedPairIds, setSelectedPairIds] = useState<Set<number>>(new Set())
   const [selectedTagId, setSelectedTagId] = useState<number | null>(null)
 
+  // chunk settings
+  const [includeChunks, setIncludeChunks] = useState(false)
+  const [allChunks, setAllChunks] = useState<Chunk[]>([])
+  const [chunkLang, setChunkLang] = useState('de')
+  const [chunkTagId, setChunkTagId] = useState<number | null>(null)
+  const [useChunkTypeA, setUseChunkTypeA] = useState(true)
+  const [useChunkTypeB, setUseChunkTypeB] = useState(true)
+  const [chunkLangs, setChunkLangs] = useState<string[]>([])
+
   const [verbs, setVerbs] = useState<Verb[]>([])
   const [pairs, setPairs] = useState<AspectPair[]>([])
   const [formsByVerbId, setFormsByVerbId] = useState<Map<number, VerbFormRead[]>>(new Map())
@@ -139,7 +162,8 @@ export default function DrillPage() {
   const [pairTranslations, setPairTranslations] = useState<PairTranslation[]>([])
   const [verbToPairId, setVerbToPairId] = useState<Map<number, number>>(new Map())
 
-  const [question, setQuestion] = useState<Question | null>(null)
+  const [reDrillMode, setReDrillMode] = useState(false)
+  const [question, setQuestion] = useState<Question | ChunkQuestion | null>(null)
   const [userAnswer, setUserAnswer] = useState('')
   const [history, setHistory] = useState<HistoryEntry[]>([])
 
@@ -155,7 +179,8 @@ export default function DrillPage() {
       api.get<Tag[]>('/tags'),
       api.get<Array<{ pair_id: number; tag_id: number }>>('/pair-tags'),
       api.get<PairTranslation[]>('/pair-translations'),
-    ]).then(([vs, ps, fs, tags, pts, trs]) => {
+      api.get<Chunk[]>('/chunks'),
+    ]).then(([vs, ps, fs, tags, pts, trs, chunks]) => {
       setVerbs(vs)
       setPairs(ps)
       const map = new Map<number, VerbFormRead[]>()
@@ -174,6 +199,11 @@ export default function DrillPage() {
         if (p.pf_verb_id !== null) v2p.set(p.pf_verb_id, p.id)
       }
       setVerbToPairId(v2p)
+      const drillable = chunks.filter(c => c.translations.length > 0)
+      setAllChunks(drillable)
+      const langs = [...new Set(drillable.flatMap(c => c.translations.map(t => t.lang)))]
+      setChunkLangs(langs)
+      if (langs.length > 0 && !langs.includes(chunkLang)) setChunkLang(langs[0])
     })
   }, [])
 
@@ -199,6 +229,13 @@ export default function DrillPage() {
     return { verbsMap, filteredPairs, filteredForms }
   }
 
+  function getChunkPool(): Chunk[] {
+    const pool = chunkTagId !== null
+      ? allChunks.filter(c => c.tags.some(t => t.id === chunkTagId))
+      : allChunks
+    return pool.filter(c => c.translations.some(t => t.lang === chunkLang))
+  }
+
   function pickQuestion(scopeOverride?: 'all' | 'selection' | 'tag', pairIdsOverride?: Set<number>): Question | null {
     const { verbsMap, filteredPairs, filteredForms } = getFilteredData(scopeOverride, pairIdsOverride)
     const types = [
@@ -222,26 +259,67 @@ export default function DrillPage() {
     return null
   }
 
+  function pickChunkQuestion(): ChunkQuestion | null {
+    const types = [
+      ...(useChunkTypeA ? ['A'] : []),
+      ...(useChunkTypeB ? ['B'] : []),
+    ]
+    if (types.length === 0) return null
+    const pool = getChunkPool()
+    if (pool.length === 0) return null
+    for (let i = 0; i < 20; i++) {
+      const chunk = pickRandom(pool)
+      const trans = chunk.translations.filter(t => t.lang === chunkLang)
+      if (trans.length === 0) continue
+      const t = pickRandom(trans)
+      const type = pickRandom(types) as 'A' | 'B'
+      if (type === 'A') {
+        return { chunkId: chunk.id, prompt: chunk.text, promptLang: chunk.lang, answer: t.text, answerLang: chunkLang, notes: chunk.notes }
+      } else {
+        return { chunkId: chunk.id, prompt: t.text, promptLang: chunkLang, answer: chunk.text, answerLang: chunk.lang, notes: chunk.notes }
+      }
+    }
+    return null
+  }
+
+  function pickNextQuestion(): Question | ChunkQuestion | null {
+    const verbTypes = [
+      ...(useAspect ? ['aspect'] : []),
+      ...(useInfinitive ? ['infinitive'] : []),
+      ...(useNumber ? ['number'] : []),
+      ...(useTranslation ? ['translation'] : []),
+    ]
+    const canVerb = verbTypes.length > 0 && getFilteredData().filteredPairs.length > 0
+    const canChunk = includeChunks && (useChunkTypeA || useChunkTypeB) && getChunkPool().length > 0
+    if (!canVerb && !canChunk) return null
+    if (!canVerb) return pickChunkQuestion()
+    if (!canChunk) return pickQuestion()
+    return Math.random() < 0.5
+      ? (pickQuestion() ?? pickChunkQuestion())
+      : (pickChunkQuestion() ?? pickQuestion())
+  }
+
   function nextQuestion() {
-    const q = pickQuestion()
+    const q = reDrillMode ? pickQuestion() : pickNextQuestion()
     if (!q) return
     setQuestion(q)
     setUserAnswer('')
-    if (typeIn) setTimeout(() => inputRef.current?.focus(), 50)
+    if (typeIn && !isChunkQ(q)) setTimeout(() => inputRef.current?.focus(), 50)
   }
 
   function startDrill() {
+    setReDrillMode(false)
     setHistory([])
     setPhase('asking')
-    const q = pickQuestion()
+    const q = pickNextQuestion()
     if (!q) return
     setQuestion(q)
     setUserAnswer('')
-    if (typeIn) setTimeout(() => inputRef.current?.focus(), 50)
+    if (typeIn && !isChunkQ(q)) setTimeout(() => inputRef.current?.focus(), 50)
   }
 
   function submitAnswer() {
-    if (!question) return
+    if (!question || isChunkQ(question)) return
     const trimmed = userAnswer.trim()
     const hasUppercase = /\p{Lu}/u.test(trimmed)
     const correct = hasUppercase
@@ -261,13 +339,9 @@ export default function DrillPage() {
 
   function recordFlashcard(correct: boolean) {
     if (!question) return
-    const entry: HistoryEntry = {
-      prompt: question.prompt,
-      userAnswer: '',
-      correctAnswer: question.correctForm,
-      correct,
-      pairId: verbToPairId.get(question.verbId),
-    }
+    const entry: HistoryEntry = isChunkQ(question)
+      ? { prompt: question.prompt, userAnswer: '', correctAnswer: question.answer, correct, isChunk: true }
+      : { prompt: question.prompt, userAnswer: '', correctAnswer: question.correctForm, correct, pairId: verbToPairId.get(question.verbId) }
     setHistory(prev => [...prev, entry])
     setPhase('asking')
     nextQuestion()
@@ -284,6 +358,7 @@ export default function DrillPage() {
     )
     setSelectedPairIds(wrongPairIds)
     setVerbScope('selection')
+    setReDrillMode(true)
     setHistory([])
     setPhase('asking')
     const q = pickQuestion('selection', wrongPairIds)
@@ -331,11 +406,14 @@ export default function DrillPage() {
     })
     const noneSelected = (verbScope === 'selection' && selectedPairIds.size === 0)
       || (verbScope === 'tag' && selectedTagId === null)
+    const verbEnabled = (useAspect || useInfinitive || useNumber || useTranslation) && !noneSelected
+    const chunkEnabled = includeChunks && (useChunkTypeA || useChunkTypeB)
+    const canStart = verbEnabled || chunkEnabled
     return (
       <div>
         <Nav />
-      <h1>Verb Drills</h1>
-        <br /><br />
+        <h1>Drills</h1>
+        <br />
         <div>
           <label>
             <input type="radio" checked={typeIn} onChange={() => setTypeIn(true)} />{' '}
@@ -348,45 +426,29 @@ export default function DrillPage() {
           </label>
         </div>
         <br />
-        <div>
+        <strong>Verbs</strong>
+        <div style={{ marginTop: '0.4rem' }}>
           <label>
-            <input
-              type="checkbox"
-              checked={useAspect}
-              onChange={e => setUseAspect(e.target.checked)}
-            />{' '}
+            <input type="checkbox" checked={useAspect} onChange={e => setUseAspect(e.target.checked)} />{' '}
             Aspect form drill
           </label>
           <br />
           <label>
-            <input
-              type="checkbox"
-              checked={useInfinitive}
-              onChange={e => setUseInfinitive(e.target.checked)}
-            />{' '}
+            <input type="checkbox" checked={useInfinitive} onChange={e => setUseInfinitive(e.target.checked)} />{' '}
             Infinitive → form drill
           </label>
           <br />
           <label>
-            <input
-              type="checkbox"
-              checked={useNumber}
-              onChange={e => setUseNumber(e.target.checked)}
-            />{' '}
+            <input type="checkbox" checked={useNumber} onChange={e => setUseNumber(e.target.checked)} />{' '}
             Singular/plural drill
           </label>
           <br />
           <label>
-            <input
-              type="checkbox"
-              checked={useTranslation}
-              onChange={e => setUseTranslation(e.target.checked)}
-            />{' '}
+            <input type="checkbox" checked={useTranslation} onChange={e => setUseTranslation(e.target.checked)} />{' '}
             Translation → form drill (de, present/future only)
           </label>
         </div>
-        <br />
-        <div>
+        <div style={{ marginTop: '0.5rem' }}>
           <label>
             <input type="radio" checked={verbScope === 'all'} onChange={() => setVerbScope('all')} />{' '}
             All verbs
@@ -443,12 +505,45 @@ export default function DrillPage() {
             </div>
           </div>
         )}
+        <hr style={{ margin: '1.25rem 0' }} />
+        <div>
+          <label>
+            <input type="checkbox" checked={includeChunks} onChange={e => setIncludeChunks(e.target.checked)} />{' '}
+            <strong>Include chunk questions</strong>
+          </label>
+        </div>
+        {includeChunks && (
+          <div style={{ marginTop: '0.5rem', marginLeft: '1.5rem' }}>
+            <div style={{ marginBottom: '0.4rem' }}>
+              <label>
+                Other language:{' '}
+                <select value={chunkLang} onChange={e => setChunkLang(e.target.value)}>
+                  {chunkLangs.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </label>
+            </div>
+            <div style={{ marginBottom: '0.4rem' }}>
+              <label>
+                Tag filter:{' '}
+                <select value={chunkTagId ?? ''} onChange={e => setChunkTagId(e.target.value ? Number(e.target.value) : null)}>
+                  <option value="">— all chunks —</option>
+                  {allTags.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </label>
+            </div>
+            <label>
+              <input type="checkbox" checked={useChunkTypeA} onChange={e => setUseChunkTypeA(e.target.checked)} />{' '}
+              Show Ukrainian → translate to {chunkLang}
+            </label>
+            <br />
+            <label>
+              <input type="checkbox" checked={useChunkTypeB} onChange={e => setUseChunkTypeB(e.target.checked)} />{' '}
+              Show {chunkLang} → give the original
+            </label>
+          </div>
+        )}
         <br />
-        <button
-          className="btn-primary"
-          onClick={startDrill}
-          disabled={(!useAspect && !useInfinitive && !useNumber && !useTranslation) || noneSelected}
-        >
+        <button className="btn-primary" onClick={startDrill} disabled={!canStart}>
           Start
         </button>
       </div>
@@ -456,32 +551,45 @@ export default function DrillPage() {
   }
 
   if (phase === 'asking') {
+    const isChunk = question && isChunkQ(question)
     return (
       <div>
-        <h1>Verb Drills</h1>
+        <h1>Drills</h1>
         <p style={{ color: '#666' }}>Question {history.length + 1}</p>
         {question && (
           <>
-            {renderPrompt(question)}
-            {question.type !== 'translation' && renderTranslations(verbToPairId.get(question.verbId))}
-            {typeIn ? (
+            {isChunk ? (
               <>
-                <input
-                  ref={inputRef}
-                  value={userAnswer}
-                  onChange={e => setUserAnswer(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') submitAnswer() }}
-                  placeholder="Type your answer..."
-                />
-                {' '}
-                <button className="btn-primary" onClick={submitAnswer}>Submit</button>
+                <p style={{ fontSize: '0.8em', color: '#aaa', margin: '0 0 0.1rem' }}>
+                  [{question.promptLang}] → [{question.answerLang}]
+                </p>
+                <p style={{ fontSize: '1.2em', fontWeight: 'bold', margin: '0 0 1rem' }}>{question.prompt}</p>
+                <button className="btn-primary" onClick={() => setPhase('revealing')}>Show answer</button>
               </>
             ) : (
-              <button className="btn-primary" onClick={() => setPhase('revealing')}>Show answer</button>
+              <>
+                {renderPrompt(question)}
+                {question.type !== 'translation' && renderTranslations(verbToPairId.get(question.verbId))}
+                {typeIn ? (
+                  <>
+                    <input
+                      ref={inputRef}
+                      value={userAnswer}
+                      onChange={e => setUserAnswer(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') submitAnswer() }}
+                      placeholder="Type your answer..."
+                    />
+                    {' '}
+                    <button className="btn-primary" onClick={submitAnswer}>Submit</button>
+                  </>
+                ) : (
+                  <button className="btn-primary" onClick={() => setPhase('revealing')}>Show answer</button>
+                )}
+              </>
             )}
           </>
         )}
-        {!typeIn && (
+        {(!typeIn || isChunk) && (
           <>
             <br /><br />
             <button onClick={endDrill}>End drill</button>
@@ -513,13 +621,31 @@ export default function DrillPage() {
   }
 
   if (phase === 'revealing') {
+    const isChunk = question && isChunkQ(question)
+    const vq = !isChunk ? question as Question : null
     return (
-      <div style={{ background: question ? aspectBg[question.aspect] : undefined }}>
-        <h1>Verb Drills</h1>
+      <div style={{ background: vq ? aspectBg[vq.aspect] : undefined }}>
+        <h1>Drills</h1>
         <p style={{ color: '#666' }}>Question {history.length + 1}</p>
-        {question && renderPrompt(question)}
-        <p>Answer: <strong>{question?.correctForm}</strong></p>
-        {renderTranslations(question ? verbToPairId.get(question.verbId) : undefined)}
+        {question && (
+          isChunk ? (
+            <>
+              <p style={{ fontSize: '0.8em', color: '#aaa', margin: '0 0 0.1rem' }}>[{question.promptLang}]</p>
+              <p style={{ fontSize: '1.2em', fontWeight: 'bold', margin: '0 0 0.5rem' }}>{question.prompt}</p>
+              <p style={{ fontSize: '0.8em', color: '#aaa', margin: '0 0 0.1rem' }}>[{question.answerLang}]</p>
+              <p style={{ fontSize: '1.1em', margin: '0 0 1rem' }}><strong>{question.answer}</strong></p>
+              {question.notes && (
+                <p style={{ color: '#666', fontSize: '0.9em', margin: '0 0 1rem' }}>Note: {question.notes}</p>
+              )}
+            </>
+          ) : vq && (
+            <>
+              {renderPrompt(vq)}
+              <p>Answer: <strong>{vq.correctForm}</strong></p>
+              {renderTranslations(verbToPairId.get(vq.verbId))}
+            </>
+          )
+        )}
         <button
           style={{ background: 'green', color: 'white', padding: '8px 24px', fontSize: '1em' }}
           onClick={() => recordFlashcard(true)}
@@ -535,16 +661,17 @@ export default function DrillPage() {
         </button>
         <br /><br />
         <button onClick={endDrill}>End drill</button>
-        {question && paradigmHint(question.verbId, question.targetVerbId)}
+        {vq && paradigmHint(vq.verbId, vq.targetVerbId)}
       </div>
     )
   }
 
   if (phase === 'reviewing') {
+    const vq = question as Question
     const last = history[history.length - 1]
     return (
-      <div style={{ background: question ? aspectBg[question.aspect] : undefined }}>
-        <h1>Verb Drills</h1>
+      <div style={{ background: vq ? aspectBg[vq.aspect] : undefined }}>
+        <h1>Drills</h1>
         <p style={{ color: '#666' }}>Question {history.length}</p>
         <p><strong>{last.prompt}</strong></p>
         <p>
@@ -559,7 +686,7 @@ export default function DrillPage() {
         <button className="btn-primary" onClick={() => continueOrEnd(false)} ref={continueRef}>Continue</button>
         {' '}
         <button onClick={() => continueOrEnd(true)}>End drill</button>
-        {question && paradigmHint(question.verbId, question.targetVerbId)}
+        {vq && paradigmHint(vq.verbId, vq.targetVerbId)}
       </div>
     )
   }
@@ -586,7 +713,7 @@ export default function DrillPage() {
         <tbody>
           {history.map((h, i) => (
             <tr key={i} style={{ background: h.correct ? '#d4edda' : '#f8d7da' }}>
-              <td>{h.prompt}</td>
+              <td>{h.isChunk ? <em>{h.prompt}</em> : h.prompt}</td>
               {typeIn && <td>{h.userAnswer || '(empty)'}</td>}
               <td>{h.correctAnswer}</td>
               <td><span style={{ color: h.correct ? 'green' : 'red' }}>{h.correct ? '✓' : '✗'}</span></td>

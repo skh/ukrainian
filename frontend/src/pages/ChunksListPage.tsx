@@ -50,7 +50,7 @@ export default function ChunksListPage() {
       <h1>Chunks</h1>
       <Link to="/chunks/add">Add chunk</Link>
       {' | '}
-      <Link to="/chunks/drill">Drill chunks</Link>
+      <Link to="/drill">Drill</Link>
       <br /><br />
       {usedTags.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center', marginBottom: '1rem' }}>
