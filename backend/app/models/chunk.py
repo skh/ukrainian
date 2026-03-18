@@ -4,6 +4,15 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
+class ChunkTag(Base):
+    __tablename__ = "chunk_tags"
+
+    chunk_id = Column(Integer, ForeignKey("chunks.id", ondelete="CASCADE"), primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+
+    tag = relationship("Tag")
+
+
 class Chunk(Base):
     __tablename__ = "chunks"
 
@@ -14,6 +23,7 @@ class Chunk(Base):
 
     translations = relationship("ChunkTranslation", cascade="all, delete-orphan")
     links = relationship("ChunkLink", cascade="all, delete-orphan")
+    chunk_tags = relationship("ChunkTag", cascade="all, delete-orphan")
 
 
 class ChunkTranslation(Base):

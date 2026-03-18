@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.crud import get_or_404
 from app.database import get_db
-from app.models.chunk import Chunk, ChunkLink, ChunkTranslation
+from app.models.chunk import Chunk, ChunkLink, ChunkTag, ChunkTranslation
+from app.models.verb import Tag
 from app.models.entry import Entry, EntryForm
 from app.models.verb import AspectPair, Verb, VerbForm
 from app.models.word_family import Lexeme
@@ -31,12 +32,13 @@ def _strip_accent(s: str) -> str:
 
 
 def _chunk_query():
-    """Base query that eagerly loads translations and links (with lexeme → pair → verbs)."""
+    """Base query that eagerly loads translations, links (with lexeme → pair → verbs), and tags."""
     link_chain = selectinload(Chunk.links).selectinload(ChunkLink.lexeme)
     return select(Chunk).options(
         selectinload(Chunk.translations),
         link_chain.selectinload(Lexeme.pair).selectinload(AspectPair.ipf_verb),
         link_chain.selectinload(Lexeme.pair).selectinload(AspectPair.pf_verb),
+        selectinload(Chunk.chunk_tags).selectinload(ChunkTag.tag),
     )
 
 
@@ -65,6 +67,7 @@ def _to_chunk_read(chunk: Chunk) -> ChunkRead:
             pair_label=pair_label,
             entry_id=entry_id,
         ))
+    tags = [ct.tag for ct in chunk.chunk_tags if ct.tag]
     return ChunkRead(
         id=chunk.id,
         lang=chunk.lang,
@@ -72,6 +75,7 @@ def _to_chunk_read(chunk: Chunk) -> ChunkRead:
         notes=chunk.notes,
         translations=chunk.translations,
         links=links,
+        tags=tags,
     )
 
 
@@ -247,6 +251,31 @@ def delete_link(link_id: int, db: Session = Depends(get_db)):
     link = get_or_404(db, ChunkLink, link_id)
     db.delete(link)
     db.commit()
+
+
+# ── tags ──────────────────────────────────────────────────────────────────────
+
+@router.post("/api/chunks/{chunk_id}/tags/{tag_id}", response_model=ChunkRead, status_code=201)
+def add_chunk_tag(chunk_id: int, tag_id: int, db: Session = Depends(get_db)):
+    get_or_404(db, Chunk, chunk_id)
+    get_or_404(db, Tag, tag_id)
+    existing = db.execute(
+        select(ChunkTag).where(ChunkTag.chunk_id == chunk_id, ChunkTag.tag_id == tag_id)
+    ).scalar_one_or_none()
+    if not existing:
+        db.add(ChunkTag(chunk_id=chunk_id, tag_id=tag_id))
+        db.commit()
+    return _to_chunk_read(db.execute(_chunk_query().where(Chunk.id == chunk_id)).scalar_one())
+
+
+@router.delete("/api/chunks/{chunk_id}/tags/{tag_id}", status_code=204)
+def remove_chunk_tag(chunk_id: int, tag_id: int, db: Session = Depends(get_db)):
+    ct = db.execute(
+        select(ChunkTag).where(ChunkTag.chunk_id == chunk_id, ChunkTag.tag_id == tag_id)
+    ).scalar_one_or_none()
+    if ct:
+        db.delete(ct)
+        db.commit()
 
 
 # ── pair convenience ──────────────────────────────────────────────────────────

@@ -25,6 +25,8 @@ class EntryCreate(BaseModel):
 
 
 class EntryUpdate(BaseModel):
+    lemma: Optional[str] = None
+    accented: Optional[str] = None
     gender: Optional[Literal['m', 'f', 'n']] = None
     number_type: Optional[Literal['sg', 'pl', 'both']] = None
 

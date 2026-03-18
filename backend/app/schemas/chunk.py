@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.tag import TagRead
+
 
 class ChunkTranslationRead(BaseModel):
     id: int
@@ -34,6 +36,7 @@ class ChunkRead(BaseModel):
     notes: Optional[str]
     translations: list[ChunkTranslationRead] = []
     links: list[ChunkLinkRead] = []
+    tags: list[TagRead] = []
 
     model_config = ConfigDict(from_attributes=True)
 

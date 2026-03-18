@@ -106,6 +106,10 @@ def update_noun(noun_id: int, data: EntryUpdate, db: Session = Depends(get_db)):
     ).scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Noun not found")
+    if data.lemma is not None:
+        entry.lemma = data.lemma
+    if data.accented is not None:
+        entry.accented = data.accented
     entry.gender = data.gender
     entry.number_type = data.number_type
     db.commit()
