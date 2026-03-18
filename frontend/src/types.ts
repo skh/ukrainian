@@ -58,6 +58,7 @@ export interface Chunk {
   notes: string | null
   translations: ChunkTranslation[]
   links: ChunkLink[]
+  tags: Tag[]
 }
 
 export interface SuggestedLink {

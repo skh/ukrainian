@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { Chunk, SuggestedLink } from '../types'
+import { Chunk, SuggestedLink, Tag } from '../types'
 import { Nav } from '../components/Nav'
+import { TagChip } from '../widgets/TagChip'
 
 const LANGS = ['uk', 'en', 'de', 'fr', 'pl']
 
@@ -27,6 +28,11 @@ export default function ChunkPage() {
   const [suggestions, setSuggestions] = useState<SuggestedLink[]>([])
   const [showSuggest, setShowSuggest] = useState(false)
 
+  // tags
+  const [allTags, setAllTags] = useState<Tag[]>([])
+  const [addTagId, setAddTagId] = useState<number | ''>('')
+  const [newTagName, setNewTagName] = useState('')
+
   // delete
   const [confirming, setConfirming] = useState(false)
   const [deleteError, setDeleteError] = useState('')
@@ -40,6 +46,7 @@ export default function ChunkPage() {
 
   useEffect(() => {
     if (id) api.get<Chunk>(`/chunks/${id}`).then(load)
+    api.get<Tag[]>('/tags').then(setAllTags)
   }, [id])
 
   async function saveMeta(e: React.FormEvent) {
@@ -96,6 +103,28 @@ export default function ChunkPage() {
     if (!chunk) return
     await api.delete(`/chunk-links/${linkId}`)
     load({ ...chunk, links: chunk.links.filter(l => l.id !== linkId) })
+  }
+
+  async function addTag() {
+    if (!chunk || addTagId === '') return
+    const updated = await api.post<Chunk>(`/chunks/${chunk.id}/tags/${addTagId}`, {})
+    load(updated)
+    setAddTagId('')
+  }
+
+  async function createAndAddTag() {
+    if (!chunk || !newTagName.trim()) return
+    const tag = await api.post<Tag>('/tags', { name: newTagName.trim() })
+    if (!allTags.some(t => t.id === tag.id)) setAllTags(prev => [...prev, tag].sort((a, b) => a.name.localeCompare(b.name)))
+    const updated = await api.post<Chunk>(`/chunks/${chunk.id}/tags/${tag.id}`, {})
+    load(updated)
+    setNewTagName('')
+  }
+
+  async function removeTag(tagId: number) {
+    if (!chunk) return
+    await api.delete(`/chunks/${chunk.id}/tags/${tagId}`)
+    load({ ...chunk, tags: chunk.tags.filter(t => t.id !== tagId) })
   }
 
   async function handleDelete() {
@@ -231,6 +260,35 @@ export default function ChunkPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section style={{ marginBottom: '1.5rem' }}>
+        <h2 style={{ marginBottom: '0.5rem' }}>Tags</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+          {chunk.tags.length === 0 && <span style={{ color: '#aaa' }}>No tags.</span>}
+          {chunk.tags.map(t => (
+            <TagChip key={t.id} tag={t} onRemove={() => removeTag(t.id)} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.4rem' }}>
+          <select value={addTagId} onChange={e => setAddTagId(e.target.value === '' ? '' : Number(e.target.value))}>
+            <option value="">— existing tag —</option>
+            {allTags.filter(t => !chunk.tags.some(ct => ct.id === t.id)).map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          <button onClick={addTag} disabled={addTagId === ''}>Add</button>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input
+            value={newTagName}
+            onChange={e => setNewTagName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') createAndAddTag() }}
+            placeholder="New tag name…"
+            style={{ width: '14rem' }}
+          />
+          <button onClick={createAndAddTag} disabled={!newTagName.trim()}>Create & add</button>
+        </div>
       </section>
 
       <section style={{ marginTop: '2rem' }}>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Nav } from '../components/Nav'
 import { api } from '../api/client'
-import { Chunk } from '../types'
+import { Chunk, Tag } from '../types'
 
 type QuestionType = 'A' | 'B'
 // A: show original → "translate to [lang]"
@@ -28,34 +28,48 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 export default function ChunkDrillPage() {
+  const [allChunks, setAllChunks] = useState<Chunk[]>([])
   const [chunks, setChunks] = useState<Chunk[]>([])
   const [targetLang, setTargetLang] = useState('de')
   const [availableLangs, setAvailableLangs] = useState<string[]>([])
   const [useTypeA, setUseTypeA] = useState(true)
   const [useTypeB, setUseTypeB] = useState(true)
+  const [allTags, setAllTags] = useState<Tag[]>([])
+  const [selectedTagId, setSelectedTagId] = useState<number | null>(null)
 
   const [phase, setPhase] = useState<'select' | 'asking' | 'revealing' | 'summary'>('select')
   const [question, setQuestion] = useState<Question | null>(null)
   const [history, setHistory] = useState<HistoryEntry[]>([])
 
   useEffect(() => {
-    api.get<Chunk[]>('/chunks').then(all => {
+    Promise.all([
+      api.get<Chunk[]>('/chunks'),
+      api.get<Tag[]>('/tags'),
+    ]).then(([all, tags]) => {
       const drillable = all.filter(c => c.translations.length > 0)
+      setAllChunks(drillable)
       setChunks(drillable)
+      setAllTags(tags)
       const langs = [...new Set(drillable.flatMap(c => c.translations.map(t => t.lang)))]
       setAvailableLangs(langs)
       if (langs.length > 0 && !langs.includes(targetLang)) setTargetLang(langs[0])
     })
   }, [])
 
-  function buildQuestion(): Question | null {
+  function getFilteredChunks(): Chunk[] {
+    if (selectedTagId === null) return allChunks
+    return allChunks.filter(c => c.tags.some(t => t.id === selectedTagId))
+  }
+
+  function buildQuestion(filtered?: Chunk[]): Question | null {
     const types: QuestionType[] = [
       ...(useTypeA ? ['A' as const] : []),
       ...(useTypeB ? ['B' as const] : []),
     ]
     if (types.length === 0) return null
 
-    const eligible = chunks.filter(c => c.translations.some(t => t.lang === targetLang))
+    const pool = filtered ?? chunks
+    const eligible = pool.filter(c => c.translations.some(t => t.lang === targetLang))
     if (eligible.length === 0) return null
 
     for (let i = 0; i < 20; i++) {
@@ -76,7 +90,9 @@ export default function ChunkDrillPage() {
 
   function startDrill() {
     setHistory([])
-    const q = buildQuestion()
+    const filtered = getFilteredChunks()
+    setChunks(filtered)
+    const q = buildQuestion(filtered)
     if (!q) return
     setQuestion(q)
     setPhase('asking')
@@ -113,7 +129,7 @@ export default function ChunkDrillPage() {
         <h1>Chunk drill</h1>
         <div style={{ marginBottom: '1rem' }}>
           <label>
-            Target language:{' '}
+            Other language:{' '}
             <select value={targetLang} onChange={e => setTargetLang(e.target.value)}>
               {availableLangs.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
@@ -131,10 +147,19 @@ export default function ChunkDrillPage() {
             Type B: show {targetLang} → give the original
           </label>
         </div>
-        <button onClick={startDrill} disabled={(!useTypeA && !useTypeB) || chunks.length === 0}>
+        <div style={{ marginBottom: '1rem' }}>
+          <label>
+            Tag filter:{' '}
+            <select value={selectedTagId ?? ''} onChange={e => setSelectedTagId(e.target.value === '' ? null : Number(e.target.value))}>
+              <option value="">— all chunks —</option>
+              {allTags.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </label>
+        </div>
+        <button onClick={startDrill} disabled={(!useTypeA && !useTypeB) || allChunks.length === 0}>
           Start
         </button>
-        {chunks.length === 0 && (
+        {allChunks.length === 0 && (
           <p style={{ color: '#aaa' }}>No drillable chunks — chunks need at least one translation.</p>
         )}
       </div>
