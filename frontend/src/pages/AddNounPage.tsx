@@ -38,7 +38,7 @@ export default function AddNounPage() {
           number_type: parsed.number_type,
         })
         if (parsed.forms.length > 0) {
-          await api.post(`/nouns/${entry.id}/forms`, parsed.forms)
+          await api.put(`/nouns/${entry.id}/forms`, parsed.forms)
         }
         navigate(`/nouns/${entry.id}`)
       } else {

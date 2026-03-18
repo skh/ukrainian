@@ -44,19 +44,16 @@ export default function NounPage() {
     const parsed = parseNoun(pasteText)
     if (!parsed) { setParseError('Could not parse goroh text.'); return }
     const updated = await api.put<Entry>(`/nouns/${noun.id}/forms`, parsed.forms)
-    // also update gender/number_type from paste if they differ
-    const metaChanged = parsed.gender !== noun.gender || parsed.number_type !== noun.number_type
-    if (metaChanged) {
-      const withMeta = await api.patch<Entry>(`/nouns/${noun.id}`, {
-        gender: parsed.gender,
-        number_type: parsed.number_type,
-      })
-      setNoun(withMeta)
-      setGender((withMeta.gender ?? '') as 'm' | 'f' | 'n' | '')
-      setNumberType(withMeta.number_type ?? 'both')
-    } else {
-      setNoun(updated)
-    }
+    // always sync accented/lemma/gender/number_type from the paste
+    const withMeta = await api.patch<Entry>(`/nouns/${noun.id}`, {
+      lemma: parsed.accented.replace(/\u0301/g, ''),
+      accented: parsed.accented,
+      gender: parsed.gender,
+      number_type: parsed.number_type,
+    })
+    setNoun(withMeta)
+    setGender((withMeta.gender ?? '') as 'm' | 'f' | 'n' | '')
+    setNumberType(withMeta.number_type ?? 'both')
     setPasteText('')
   }
 

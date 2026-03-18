@@ -34,7 +34,7 @@ export function parseNoun(text: string): ParsedNoun | null {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
   if (lines.length < 3) return null
 
-  const accented = lines[0]
+  const accented = lines[0].split(/\s+/)[0]
 
   if (!lines.some(l => l === 'іменник')) return null
 
