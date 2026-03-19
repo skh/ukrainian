@@ -110,7 +110,7 @@ export function FormsTable({
   function personRows(tense: VerbFormData['tense'], persons: Array<'1' | '2' | '3'>) {
     return persons.map(p => (
       <tr key={p}>
-        <td>{p} особа</td>
+        <td style={{ whiteSpace: 'nowrap' }}>{p} особа</td>
         <td>{cell(tense, p, 'singular', null)}</td>
         <td>{cell(tense, p, 'plural', null)}</td>
       </tr>
@@ -123,12 +123,12 @@ export function FormsTable({
         <tr><th colSpan={3}>Наказовий спосіб</th></tr>
         <tr><th></th><th>Однина</th><th>Множина</th></tr>
         <tr>
-          <td>1 особа</td>
+          <td style={{ whiteSpace: 'nowrap' }}>1 особа</td>
           <td>—</td>
           <td>{cell('imperative', '1', 'plural', null)}</td>
         </tr>
         <tr>
-          <td>2 особа</td>
+          <td style={{ whiteSpace: 'nowrap' }}>2 особа</td>
           <td>{cell('imperative', '2', 'singular', null)}</td>
           <td>{cell('imperative', '2', 'plural', null)}</td>
         </tr>
@@ -148,16 +148,16 @@ export function FormsTable({
         <tr><th colSpan={3}>Минулий час</th></tr>
         <tr><th></th><th>Однина</th><th>Множина</th></tr>
         <tr>
-          <td>чол. р.</td>
+          <td style={{ whiteSpace: 'nowrap' }}>чол. р.</td>
           <td>{cell('past', null, 'singular', 'masculine')}</td>
           <td rowSpan={3}>{cell('past', null, 'plural', null)}</td>
         </tr>
         <tr>
-          <td>жін. р.</td>
+          <td style={{ whiteSpace: 'nowrap' }}>жін. р.</td>
           <td>{cell('past', null, 'singular', 'feminine')}</td>
         </tr>
         <tr>
-          <td>сер. р.</td>
+          <td style={{ whiteSpace: 'nowrap' }}>сер. р.</td>
           <td>{cell('past', null, 'singular', 'neuter')}</td>
         </tr>
       </tbody>

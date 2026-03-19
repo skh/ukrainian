@@ -146,7 +146,6 @@ export default function DrillPage() {
   const [selectedTagId, setSelectedTagId] = useState<number | null>(null)
 
   // chunk settings
-  const [includeChunks, setIncludeChunks] = useState(false)
   const [allChunks, setAllChunks] = useState<Chunk[]>([])
   const [chunkLang, setChunkLang] = useState('de')
   const [chunkTagId, setChunkTagId] = useState<number | null>(null)
@@ -162,6 +161,7 @@ export default function DrillPage() {
   const [pairTranslations, setPairTranslations] = useState<PairTranslation[]>([])
   const [verbToPairId, setVerbToPairId] = useState<Map<number, number>>(new Map())
 
+  const [drillMode, setDrillMode] = useState<'verbs' | 'chunks' | 'mixed'>('verbs')
   const [reDrillMode, setReDrillMode] = useState(false)
   const [question, setQuestion] = useState<Question | ChunkQuestion | null>(null)
   const [userAnswer, setUserAnswer] = useState('')
@@ -289,8 +289,8 @@ export default function DrillPage() {
       ...(useNumber ? ['number'] : []),
       ...(useTranslation ? ['translation'] : []),
     ]
-    const canVerb = verbTypes.length > 0 && getFilteredData().filteredPairs.length > 0
-    const canChunk = includeChunks && (useChunkTypeA || useChunkTypeB) && getChunkPool().length > 0
+    const canVerb = drillMode !== 'chunks' && verbTypes.length > 0 && getFilteredData().filteredPairs.length > 0
+    const canChunk = drillMode !== 'verbs' && (useChunkTypeA || useChunkTypeB) && getChunkPool().length > 0
     if (!canVerb && !canChunk) return null
     if (!canVerb) return pickChunkQuestion()
     if (!canChunk) return pickQuestion()
@@ -406,14 +406,34 @@ export default function DrillPage() {
     })
     const noneSelected = (verbScope === 'selection' && selectedPairIds.size === 0)
       || (verbScope === 'tag' && selectedTagId === null)
-    const verbEnabled = (useAspect || useInfinitive || useNumber || useTranslation) && !noneSelected
-    const chunkEnabled = includeChunks && (useChunkTypeA || useChunkTypeB)
+    const verbEnabled = drillMode !== 'chunks' && (useAspect || useInfinitive || useNumber || useTranslation) && !noneSelected
+    const chunkEnabled = drillMode !== 'verbs' && (useChunkTypeA || useChunkTypeB)
     const canStart = verbEnabled || chunkEnabled
+    const showVerbs = drillMode === 'verbs' || drillMode === 'mixed'
+    const showChunks = drillMode === 'chunks' || drillMode === 'mixed'
     return (
       <div>
         <Nav />
         <h1>Drills</h1>
         <br />
+        <div>
+          <label>
+            <input type="radio" checked={drillMode === 'verbs'} onChange={() => setDrillMode('verbs')} />{' '}
+            Verbs
+          </label>
+          {'  '}
+          <label>
+            <input type="radio" checked={drillMode === 'chunks'} onChange={() => setDrillMode('chunks')} />{' '}
+            Chunks
+          </label>
+          {'  '}
+          <label>
+            <input type="radio" checked={drillMode === 'mixed'} onChange={() => setDrillMode('mixed')} />{' '}
+            Mixed
+          </label>
+        </div>
+        <br />
+        {showVerbs && (
         <div>
           <label>
             <input type="radio" checked={typeIn} onChange={() => setTypeIn(true)} />{' '}
@@ -425,8 +445,10 @@ export default function DrillPage() {
             Show answer (flashcard)
           </label>
         </div>
-        <br />
-        <strong>Verbs</strong>
+        )}
+        {showVerbs && <br />}
+        {showVerbs && <strong>Verbs</strong>}
+        {showVerbs && (
         <div style={{ marginTop: '0.4rem' }}>
           <label>
             <input type="checkbox" checked={useAspect} onChange={e => setUseAspect(e.target.checked)} />{' '}
@@ -448,6 +470,8 @@ export default function DrillPage() {
             Translation → form drill (de, present/future only)
           </label>
         </div>
+        )}
+        {showVerbs && (
         <div style={{ marginTop: '0.5rem' }}>
           <label>
             <input type="radio" checked={verbScope === 'all'} onChange={() => setVerbScope('all')} />{' '}
@@ -464,7 +488,8 @@ export default function DrillPage() {
             By tag
           </label>
         </div>
-        {verbScope === 'tag' && (
+        )}
+        {showVerbs && verbScope === 'tag' && (
           <div style={{ marginTop: '0.5rem' }}>
             <select
               value={selectedTagId ?? ''}
@@ -475,7 +500,7 @@ export default function DrillPage() {
             </select>
           </div>
         )}
-        {verbScope === 'selection' && (
+        {showVerbs && verbScope === 'selection' && (
           <div style={{ marginTop: '0.5rem' }}>
             <button onClick={() => setSelectedPairIds(new Set(pairs.map(p => p.id)))}>Select all</button>
             {' '}
@@ -505,16 +530,11 @@ export default function DrillPage() {
             </div>
           </div>
         )}
-        <hr style={{ margin: '1.25rem 0' }} />
-        <div>
-          <label>
-            <input type="checkbox" checked={includeChunks} onChange={e => setIncludeChunks(e.target.checked)} />{' '}
-            <strong>Include chunk questions</strong>
-          </label>
-        </div>
-        {includeChunks && (
-          <div style={{ marginTop: '0.5rem', marginLeft: '1.5rem' }}>
-            <div style={{ marginBottom: '0.4rem' }}>
+        {showVerbs && showChunks && <hr style={{ margin: '1.25rem 0' }} />}
+        {showChunks && (
+          <div>
+            <strong>Chunks</strong>
+            <div style={{ marginTop: '0.5rem', marginBottom: '0.4rem' }}>
               <label>
                 Other language:{' '}
                 <select value={chunkLang} onChange={e => setChunkLang(e.target.value)}>
@@ -560,10 +580,10 @@ export default function DrillPage() {
           <>
             {isChunk ? (
               <>
-                <p style={{ fontSize: '0.8em', color: '#aaa', margin: '0 0 0.1rem' }}>
+                <p style={{ fontSize: '0.85em', color: '#666', margin: '1.5em 0 0.15em' }}>
                   [{question.promptLang}] → [{question.answerLang}]
                 </p>
-                <p style={{ fontSize: '1.2em', fontWeight: 'bold', margin: '0 0 1rem' }}>{question.prompt}</p>
+                <p style={{ margin: '0.2em 0 1.5em' }}><strong>{question.prompt}</strong></p>
                 <button className="btn-primary" onClick={() => setPhase('revealing')}>Show answer</button>
               </>
             ) : (
@@ -590,10 +610,9 @@ export default function DrillPage() {
           </>
         )}
         {(!typeIn || isChunk) && (
-          <>
-            <br /><br />
+          <div style={{ marginTop: '1rem' }}>
             <button onClick={endDrill}>End drill</button>
-          </>
+          </div>
         )}
       </div>
     )
@@ -630,12 +649,11 @@ export default function DrillPage() {
         {question && (
           isChunk ? (
             <>
-              <p style={{ fontSize: '0.8em', color: '#aaa', margin: '0 0 0.1rem' }}>[{question.promptLang}]</p>
-              <p style={{ fontSize: '1.2em', fontWeight: 'bold', margin: '0 0 0.5rem' }}>{question.prompt}</p>
-              <p style={{ fontSize: '0.8em', color: '#aaa', margin: '0 0 0.1rem' }}>[{question.answerLang}]</p>
-              <p style={{ fontSize: '1.1em', margin: '0 0 1rem' }}><strong>{question.answer}</strong></p>
+              <p style={{ fontSize: '0.85em', color: '#666', margin: '0.15em 0 0' }}>[{question.promptLang}]</p>
+              <p style={{ margin: '0.2em 0' }}><strong>{question.prompt}</strong></p>
+              <p>Answer: <strong>{question.answer}</strong></p>
               {question.notes && (
-                <p style={{ color: '#666', fontSize: '0.9em', margin: '0 0 1rem' }}>Note: {question.notes}</p>
+                <p style={{ fontSize: '0.85em', color: '#666', margin: '0.15em 0 0' }}>Note: {question.notes}</p>
               )}
             </>
           ) : vq && (
