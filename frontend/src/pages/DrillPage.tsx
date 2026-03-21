@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { stripAccent } from '../utils/forms'
-import { Verb, Tag, PairTranslation, AspectPair, VerbFormRead, Chunk } from '../types'
+import { Verb, Tag, PairTranslation, AspectPair, VerbFormRead, Chunk, ChunkLink, Entry } from '../types'
 import { aspectBg } from '../utils/theme'
 import { FormsTable } from '../components/FormsTable'
+import { TagPicker } from '../widgets/TagPicker'
 import {
   pickRandom,
   generateAspectQuestion,
@@ -132,6 +133,167 @@ function renderPrompt(q: Question) {
     )
   }
   return <p><strong>{q.prompt}</strong></p>
+}
+
+function VerbPairPopup({ pairId, verbs, pairs, formsByVerbId, pairTranslations }: {
+  pairId: number
+  verbs: Verb[]
+  pairs: AspectPair[]
+  formsByVerbId: Map<number, VerbFormRead[]>
+  pairTranslations: PairTranslation[]
+}) {
+  const [showPartner, setShowPartner] = useState(false)
+
+  const pair = pairs.find(p => p.id === pairId)
+  if (!pair) return null
+  const primaryVerbId = pair.ipf_verb_id ?? pair.pf_verb_id
+  if (primaryVerbId == null) return null
+  const primaryVerb = verbs.find(v => v.id === primaryVerbId)
+  if (!primaryVerb) return null
+
+  const partnerVerbId = primaryVerb.aspect === 'ipf' ? pair.pf_verb_id : pair.ipf_verb_id
+  const partnerVerb = partnerVerbId != null ? verbs.find(v => v.id === partnerVerbId) : undefined
+
+  const displayVerb = showPartner && partnerVerb ? partnerVerb : primaryVerb
+  const displayForms = formsByVerbId.get(displayVerb.id) ?? []
+  const displayAspect = displayVerb.aspect
+
+  const translations = pairTranslations.filter(t => t.pair_id === pairId)
+  const byLang = translations.reduce<Record<string, string[]>>((acc, t) => {
+    ;(acc[t.lang] ??= []).push(t.text); return acc
+  }, {})
+
+  const triangleStyle: React.CSSProperties = { cursor: 'pointer', userSelect: 'none', color: '#555', padding: '0 0.3em' }
+  const triangle = partnerVerb ? (
+    displayAspect === 'ipf'
+      ? <span style={triangleStyle} onClick={() => setShowPartner(s => !s)}>▶</span>
+      : <span style={triangleStyle} onClick={() => setShowPartner(s => !s)}>◀</span>
+  ) : null
+
+  return (
+    <div style={{ background: aspectBg[displayAspect], border: '1px solid #ccc', borderRadius: '4px', padding: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', fontSize: '70%', maxWidth: '90vw' }}>
+      <div>
+        {displayAspect === 'pf' && triangle}
+        <strong>{displayVerb.accented}</strong>
+        {' '}<span style={{ color: '#888' }}>({displayVerb.aspect})</span>
+        {displayAspect === 'ipf' && triangle}
+      </div>
+      {Object.entries(byLang).map(([lang, texts]) => (
+        <div key={lang} style={{ color: '#555', marginTop: '0.2em' }}>{lang}: {texts.join(', ')}</div>
+      ))}
+      <div style={{ marginTop: '0.5rem' }}><FormsTable forms={displayForms} /></div>
+    </div>
+  )
+}
+
+function ChunkLinksHint({ links, verbs, pairs, formsByVerbId, pairTranslations }: {
+  links: ChunkLink[]
+  verbs: Verb[]
+  pairs: AspectPair[]
+  formsByVerbId: Map<number, VerbFormRead[]>
+  pairTranslations: PairTranslation[]
+}) {
+  const [openId, setOpenId] = useState<number | null>(null)
+  const [nounCache, setNounCache] = useState<Map<number, Entry>>(new Map())
+
+  const relevant = links.filter(l => l.pair_id || l.entry_id)
+  if (relevant.length === 0) return null
+
+  async function toggle(link: ChunkLink) {
+    if (openId === link.id) { setOpenId(null); return }
+    setOpenId(link.id)
+    if (link.entry_id && !nounCache.has(link.entry_id)) {
+      const entry = await api.get<Entry>(`/nouns/${link.entry_id}`)
+      setNounCache(prev => new Map(prev).set(link.entry_id!, entry))
+    }
+  }
+
+  const openLink = relevant.find(l => l.id === openId)
+
+  function renderNounPopup(entry: Entry) {
+    const hasSg = entry.number_type !== 'pl'
+    const hasPl = entry.number_type !== 'sg'
+    const cases = ['nom', 'gen', 'dat', 'acc', 'ins', 'loc', 'voc']
+    const labels: Record<string, string> = { nom: 'Н', gen: 'Р', dat: 'Д', acc: 'З', ins: 'О', loc: 'М', voc: 'К' }
+    return (
+      <div style={{ background: '#f8f8f8', border: '1px solid #ccc', borderRadius: '4px', padding: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', fontSize: '70%', maxWidth: '90vw' }}>
+        <div><strong>{entry.accented}</strong>{entry.gender && <span style={{ color: '#888', marginLeft: '0.5em' }}>({entry.gender})</span>}</div>
+        <table style={{ marginTop: '0.5rem', borderCollapse: 'collapse' }}>
+          <thead><tr>
+            <th></th>
+            {hasSg && <th style={{ paddingLeft: '0.5em', fontWeight: 'normal', color: '#888' }}>одн.</th>}
+            {hasPl && <th style={{ paddingLeft: '0.5em', fontWeight: 'normal', color: '#888' }}>мн.</th>}
+          </tr></thead>
+          <tbody>
+            {cases.map(c => {
+              const sg = entry.forms?.find(f => f.tags.includes(c) && f.tags.includes('sg'))?.form
+              const pl = entry.forms?.find(f => f.tags.includes(c) && f.tags.includes('pl'))?.form
+              if (!sg && !pl) return null
+              return (
+                <tr key={c}>
+                  <td style={{ color: '#888', paddingRight: '0.5em' }}>{labels[c]}</td>
+                  {hasSg && <td style={{ paddingLeft: '0.5em' }}>{sg ?? '—'}</td>}
+                  {hasPl && <td style={{ paddingLeft: '0.5em' }}>{pl ?? '—'}</td>}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  return createPortal(
+    <div style={{ position: 'fixed', bottom: '1rem', right: '1rem', zIndex: 9999 }}>
+      {openLink && (
+        <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', right: 0 }}>
+          {openLink.pair_id
+            ? <VerbPairPopup pairId={openLink.pair_id} verbs={verbs} pairs={pairs} formsByVerbId={formsByVerbId} pairTranslations={pairTranslations} />
+            : openLink.entry_id && nounCache.has(openLink.entry_id)
+            ? renderNounPopup(nounCache.get(openLink.entry_id)!)
+            : <div style={{ fontSize: '0.8em', color: '#888', background: 'white', border: '1px solid #ddd', borderRadius: '4px', padding: '0.5rem' }}>Loading…</div>
+          }
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
+        {relevant.map(link => {
+          const isVerb = !!link.pair_id
+          const nounColor = link.entry_gender === 'm' ? '#cc2200'
+            : link.entry_gender === 'f' ? '#1166cc'
+            : link.entry_gender === 'n' ? '#228833'
+            : '#555'
+          const pairParts = isVerb && link.pair_label ? link.pair_label.split(' / ') : null
+          return (
+            <button
+              key={link.id}
+              onClick={() => toggle(link)}
+              style={{
+                fontSize: '0.75em',
+                fontStyle: 'italic',
+                padding: '0.15em 0.6em',
+                borderRadius: '1em',
+                border: '1px solid #ccc',
+                background: 'white',
+                color: isVerb ? undefined : nounColor,
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              {pairParts ? (
+                <>
+                  <span style={{ color: '#2266bb' }}>{pairParts[0]}</span>
+                  {pairParts[1] && <><span style={{ color: '#ccc' }}> / </span><span style={{ color: '#c8b800' }}>{pairParts[1]}</span></>}
+                </>
+              ) : (
+                link.pair_label ?? link.lexeme_form ?? '?'
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>,
+    document.body,
+  )
 }
 
 export default function DrillPage() {
@@ -345,6 +507,30 @@ export default function DrillPage() {
     setHistory(prev => [...prev, entry])
     setPhase('asking')
     nextQuestion()
+  }
+
+  async function addTagToCurrentItem(tagName: string) {
+    if (!question) return
+    const tag = await api.post<Tag>('/tags', { name: tagName })
+    if (!allTags.some(t => t.id === tag.id))
+      setAllTags(prev => [...prev, tag].sort((a, b) => a.name.localeCompare(b.name)))
+    if (isChunkQ(question)) {
+      await api.post(`/chunks/${question.chunkId}/tags/${tag.id}`, {})
+      setAllChunks(prev => prev.map(c =>
+        c.id === question.chunkId && !c.tags.some(t => t.id === tag.id)
+          ? { ...c, tags: [...c.tags, tag] }
+          : c
+      ))
+    } else {
+      const pairId = verbToPairId.get(question.verbId)
+      if (pairId) {
+        await api.post(`/pairs/${pairId}/tags/${tag.id}`, {})
+        setPairTags(prev => prev.some(pt => pt.pair_id === pairId && pt.tag_id === tag.id)
+          ? prev
+          : [...prev, { pair_id: pairId, tag_id: tag.id }]
+        )
+      }
+    }
   }
 
   function endDrill() {
@@ -660,6 +846,9 @@ export default function DrillPage() {
             <>
               {renderPrompt(vq)}
               <p>Answer: <strong>{vq.correctForm}</strong></p>
+              {vq.targetFormLabel && (
+                <p style={{ fontSize: '0.85em', color: '#666', margin: '0.15em 0 0' }}>{vq.targetFormLabel}</p>
+              )}
               {renderTranslations(verbToPairId.get(vq.verbId))}
             </>
           )
@@ -677,9 +866,26 @@ export default function DrillPage() {
         >
           Didn't know
         </button>
-        <br /><br />
+        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <span style={{ fontSize: '0.8em', color: '#888' }}>Tag:</span>
+          <TagPicker
+            allTags={allTags}
+            assignedTagIds={question && isChunkQ(question)
+              ? new Set(allChunks.find(c => c.id === question.chunkId)?.tags.map(t => t.id) ?? [])
+              : new Set(vq ? pairTags.filter(pt => pt.pair_id === verbToPairId.get(vq.verbId)).map(pt => pt.tag_id) : [])
+            }
+            onAdd={addTagToCurrentItem}
+          />
+        </div>
+        <br />
         <button onClick={endDrill}>End drill</button>
         {vq && paradigmHint(vq.verbId, vq.targetVerbId)}
+        {isChunk && question && (() => {
+          const chunk = allChunks.find(c => c.id === (question as ChunkQuestion).chunkId)
+          return chunk && chunk.links.length > 0
+            ? <ChunkLinksHint links={chunk.links} verbs={verbs} pairs={pairs} formsByVerbId={formsByVerbId} pairTranslations={pairTranslations} />
+            : null
+        })()}
       </div>
     )
   }
