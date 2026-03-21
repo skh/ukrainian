@@ -32,6 +32,7 @@ export interface Question {
   verbId: number
   targetVerbId?: number
   display?: PromptLine[]
+  targetFormLabel?: string
 }
 
 function getPronoun(
@@ -135,6 +136,9 @@ export function generateAspectQuestion(
   const displaySourceForm = selectForm(sourceForm.form, sourceForm.tense, sourceForm.person, sourceForm.number)
   const correctForm = selectForm(targetMatch.form, targetMatch.tense, targetMatch.person, targetMatch.number)
 
+  const pronoun = getPronoun(targetMatch.tense, targetMatch.person, targetMatch.number, targetMatch.gender)
+  const targetLabel = formLabel(targetMatch.tense, targetMatch.person, targetMatch.number, targetMatch.gender)
+
   return {
     type: 'aspect' as const,
     prompt: `${displaySourceForm} → change the aspect`,
@@ -142,6 +146,7 @@ export function generateAspectQuestion(
     aspect: goIpfToPf ? 'pf' : 'ipf',
     verbId: sourceId,
     targetVerbId: targetId,
+    targetFormLabel: `${pronoun} … (${targetLabel})`,
   }
 }
 
