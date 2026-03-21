@@ -38,6 +38,7 @@ def _chunk_query():
         selectinload(Chunk.translations),
         link_chain.selectinload(Lexeme.pair).selectinload(AspectPair.ipf_verb),
         link_chain.selectinload(Lexeme.pair).selectinload(AspectPair.pf_verb),
+        link_chain.selectinload(Lexeme.entry),
         selectinload(Chunk.chunk_tags).selectinload(ChunkTag.tag),
     )
 
@@ -49,9 +50,11 @@ def _to_chunk_read(chunk: Chunk) -> ChunkRead:
         pair_id = None
         pair_label = None
         entry_id = None
+        entry_gender = None
         if lex:
             pair_id = lex.pair_id
             entry_id = lex.entry_id
+            entry_gender = lex.entry.gender if lex.entry else None
             if lex.pair:
                 parts = [
                     v.accented for v in [lex.pair.ipf_verb, lex.pair.pf_verb] if v
@@ -66,6 +69,7 @@ def _to_chunk_read(chunk: Chunk) -> ChunkRead:
             pair_id=pair_id,
             pair_label=pair_label,
             entry_id=entry_id,
+            entry_gender=entry_gender,
         ))
     tags = [ct.tag for ct in chunk.chunk_tags if ct.tag]
     return ChunkRead(

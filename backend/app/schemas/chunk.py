@@ -25,6 +25,7 @@ class ChunkLinkRead(BaseModel):
     pair_label: Optional[str] = None
     # for nouns/other entries: entry_id
     entry_id: Optional[int] = None
+    entry_gender: Optional[str] = None  # 'm'/'f'/'n' for nouns
 
     model_config = ConfigDict(from_attributes=True)
 

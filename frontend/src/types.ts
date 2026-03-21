@@ -49,6 +49,7 @@ export interface ChunkLink {
   pair_id: number | null
   pair_label: string | null
   entry_id: number | null
+  entry_gender: string | null
 }
 
 export interface Chunk {
