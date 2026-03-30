@@ -8,6 +8,7 @@ import { Verb, Tag, PairTranslation, AspectPair, VerbFormRead, Chunk, ChunkLink,
 import { aspectBg } from '../utils/theme'
 import { FormsTable } from '../components/FormsTable'
 import { TagPicker } from '../widgets/TagPicker'
+import { TagChip } from '../widgets/TagChip'
 import {
   pickRandom,
   generateAspectQuestion,
@@ -39,6 +40,7 @@ interface HistoryEntry {
   userAnswer: string
   correctAnswer: string
   correct: boolean
+  stressOnly?: boolean
   pairId?: number
   isChunk?: boolean
 }
@@ -499,11 +501,11 @@ export default function DrillPage() {
     setTimeout(() => continueRef.current?.focus(), 50)
   }
 
-  function recordFlashcard(correct: boolean) {
+  function recordFlashcard(correct: boolean, stressOnly?: boolean) {
     if (!question) return
     const entry: HistoryEntry = isChunkQ(question)
-      ? { prompt: question.prompt, userAnswer: '', correctAnswer: question.answer, correct, isChunk: true }
-      : { prompt: question.prompt, userAnswer: '', correctAnswer: question.correctForm, correct, pairId: verbToPairId.get(question.verbId) }
+      ? { prompt: question.prompt, userAnswer: '', correctAnswer: question.answer, correct, stressOnly, isChunk: true }
+      : { prompt: question.prompt, userAnswer: '', correctAnswer: question.correctForm, correct, stressOnly, pairId: verbToPairId.get(question.verbId) }
     setHistory(prev => [...prev, entry])
     setPhase('asking')
     nextQuestion()
@@ -540,7 +542,7 @@ export default function DrillPage() {
 
   function reDrillWrong() {
     const wrongPairIds = new Set(
-      history.filter(h => !h.correct && h.pairId != null).map(h => h.pairId!)
+      history.filter(h => !h.correct && !h.stressOnly && h.pairId != null).map(h => h.pairId!)
     )
     setSelectedPairIds(wrongPairIds)
     setVerbScope('selection')
@@ -861,13 +863,24 @@ export default function DrillPage() {
         </button>
         {' '}
         <button
+          style={{ background: '#c8a800', color: 'white', padding: '8px 24px', fontSize: '1em' }}
+          onClick={() => recordFlashcard(true, true)}
+        >
+          наголос
+        </button>
+        {' '}
+        <button
           style={{ background: '#c00', color: 'white', padding: '8px 24px', fontSize: '1em' }}
           onClick={() => recordFlashcard(false)}
         >
           Didn't know
         </button>
-        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <span style={{ fontSize: '0.8em', color: '#888' }}>Tag:</span>
+        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+          <span style={{ fontSize: '0.8em', color: '#888' }}>Tags:</span>
+          {question && isChunkQ(question)
+            ? allChunks.find(c => c.id === question.chunkId)?.tags.map(t => <TagChip key={t.id} tag={t} />)
+            : vq && pairTags.filter(pt => pt.pair_id === verbToPairId.get(vq.verbId)).map(pt => allTags.find(t => t.id === pt.tag_id)).filter(Boolean).map(t => <TagChip key={t!.id} tag={t!} />)
+          }
           <TagPicker
             allTags={allTags}
             assignedTagIds={question && isChunkQ(question)
@@ -936,11 +949,11 @@ export default function DrillPage() {
         </thead>
         <tbody>
           {history.map((h, i) => (
-            <tr key={i} style={{ background: h.correct ? '#d4edda' : '#f8d7da' }}>
+            <tr key={i} style={{ background: h.stressOnly ? '#fff9c4' : h.correct ? '#d4edda' : '#f8d7da' }}>
               <td>{h.isChunk ? <em>{h.prompt}</em> : h.prompt}</td>
               {typeIn && <td>{h.userAnswer || '(empty)'}</td>}
               <td>{h.correctAnswer}</td>
-              <td><span style={{ color: h.correct ? 'green' : 'red' }}>{h.correct ? '✓' : '✗'}</span></td>
+              <td><span style={{ color: h.stressOnly ? '#c8a800' : h.correct ? 'green' : 'red' }}>{h.stressOnly ? '~' : h.correct ? '✓' : '✗'}</span></td>
             </tr>
           ))}
         </tbody>
@@ -949,7 +962,7 @@ export default function DrillPage() {
       <button className="btn-primary" onClick={() => { setPhase('select'); setHistory([]) }} ref={newDrillRef}>
         New drill
       </button>
-      {history.some(h => !h.correct && h.pairId != null) && (
+      {history.some(h => !h.correct && !h.stressOnly && h.pairId != null) && (
         <>
           {' '}
           <button onClick={reDrillWrong}>Re-drill wrong verbs</button>

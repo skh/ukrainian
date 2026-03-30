@@ -3,7 +3,7 @@ import { tagColor } from './tagColor'
 
 interface TagChipProps {
   tag: Tag
-  onRemove: () => void
+  onRemove?: () => void
 }
 
 export function TagChip({ tag, onRemove }: TagChipProps) {
@@ -23,7 +23,7 @@ export function TagChip({ tag, onRemove }: TagChipProps) {
       whiteSpace: 'nowrap',
     }}>
       {tag.name}
-      <button
+      {onRemove && <button
         onClick={onRemove}
         style={{
           display: 'inline-flex',
@@ -45,7 +45,7 @@ export function TagChip({ tag, onRemove }: TagChipProps) {
         title={`Remove "${tag.name}"`}
       >
         ×
-      </button>
+      </button>}
     </span>
   )
 }
