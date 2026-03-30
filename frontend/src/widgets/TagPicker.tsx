@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Tag } from '../types'
 import { tagColor } from './tagColor'
 
@@ -12,8 +13,10 @@ export function TagPicker({ allTags, assignedTagIds, onAdd }: TagPickerProps) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [hovered, setHovered] = useState<number | 'create' | null>(null)
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const inputRef = useRef<HTMLInputElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Focus input when opened, reset when closed
   useEffect(() => {
@@ -28,13 +31,26 @@ export function TagPicker({ allTags, assignedTagIds, onAdd }: TagPickerProps) {
   useEffect(() => {
     if (!open) return
     function onMouseDown(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (
+        buttonRef.current && !buttonRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setOpen(false)
       }
     }
     document.addEventListener('mousedown', onMouseDown)
     return () => document.removeEventListener('mousedown', onMouseDown)
   }, [open])
+
+  function handleOpen() {
+    if (open) { setOpen(false); return }
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left })
+    }
+    setOpen(true)
+  }
 
   const unassigned = allTags.filter(t => !assignedTagIds.has(t.id))
   const filtered = input.trim()
@@ -73,9 +89,10 @@ export function TagPicker({ allTags, assignedTagIds, onAdd }: TagPickerProps) {
   }
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div style={{ display: 'inline-block' }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={buttonRef}
+        onClick={handleOpen}
         style={{
           fontSize: '0.72em',
           fontWeight: 700,
@@ -92,22 +109,25 @@ export function TagPicker({ allTags, assignedTagIds, onAdd }: TagPickerProps) {
         +
       </button>
 
-      {open && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 4px)',
-          left: 0,
-          zIndex: 200,
-          background: '#fff',
-          border: '1px solid #ddd',
-          borderRadius: '6px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-          minWidth: '160px',
-          maxHeight: '220px',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
+      {open && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            zIndex: 9999,
+            background: '#fff',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+            minWidth: '160px',
+            maxHeight: '220px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
           <div style={{ padding: '6px 6px 4px' }}>
             <input
               ref={inputRef}
@@ -185,7 +205,8 @@ export function TagPicker({ allTags, assignedTagIds, onAdd }: TagPickerProps) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
