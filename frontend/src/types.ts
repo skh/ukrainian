@@ -106,6 +106,38 @@ export interface WordFamily {
 export type Entry = Lexeme
 export type EntryForm = LexemeForm
 
+export interface AnalysisFormInfo {
+  tags: string
+  form: string
+}
+
+export interface AnalysisVerbInfo {
+  accented: string
+  aspect: 'ipf' | 'pf'
+  forms: AnalysisFormInfo[]
+}
+
+export interface AnalysisTokenMatch {
+  lexeme_id: number
+  accented: string
+  pos: string
+  gender: 'm' | 'f' | 'n' | null
+  translations: { lang: string; text: string }[]
+  forms: AnalysisFormInfo[]
+  verbs: AnalysisVerbInfo[]
+}
+
+export interface AnalyzedToken {
+  text: string
+  is_word: boolean
+  match?: AnalysisTokenMatch
+}
+
+export interface AnalyzeResponse {
+  tokens: AnalyzedToken[]
+  unknown: string[]
+}
+
 export type DerivationType = 'prefix' | 'suffix' | 'stem_change' | 'stress_change' | 'reflexive'
 
 export interface VerbFormRead {

@@ -16,6 +16,7 @@ import NounPage from './pages/NounPage'
 import ChunksListPage from './pages/ChunksListPage'
 import AddChunkPage from './pages/AddChunkPage'
 import ChunkPage from './pages/ChunkPage'
+import TextAnalysisPage from './pages/TextAnalysisPage'
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/chunks" element={<ChunksListPage />} />
         <Route path="/chunks/add" element={<AddChunkPage />} />
         <Route path="/chunks/:id" element={<ChunkPage />} />
+        <Route path="/analyze" element={<TextAnalysisPage />} />
       </Routes>
     </BrowserRouter>
   )

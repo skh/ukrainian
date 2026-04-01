@@ -15,6 +15,8 @@ export function Nav() {
       {' | '}
       <Link to="/word-families">Word families</Link>
       {' | '}
+      <Link to="/analyze">Analyze</Link>
+      {' | '}
       <Link to="/frequencies/refetch">Refetch frequencies</Link>
     </nav>
   )
