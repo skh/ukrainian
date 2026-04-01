@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { Entry } from '../types'
+import { Entry, LexemeTranslation } from '../types'
 import { Nav } from '../components/Nav'
 import { genderBg } from '../utils/nouns'
 
 export default function NounsListPage() {
   const [nouns, setNouns] = useState<Entry[]>([])
+  const [deByLexeme, setDeByLexeme] = useState<Map<number, string>>(new Map())
 
   useEffect(() => {
-    api.get<Entry[]>('/nouns').then(setNouns)
+    Promise.all([
+      api.get<Entry[]>('/nouns'),
+      api.get<LexemeTranslation[]>('/lexeme-translations'),
+    ]).then(([ns, trs]) => {
+      setNouns(ns)
+      setDeByLexeme(new Map(
+        trs.filter(t => t.lang === 'de').map(t => [t.lexeme_id, t.text])
+      ))
+    })
   }, [])
 
   return (
@@ -27,6 +36,7 @@ export default function NounsListPage() {
               <th>Noun</th>
               <th>Gender</th>
               <th>Number</th>
+              <th>de</th>
             </tr>
           </thead>
           <tbody>
@@ -50,6 +60,7 @@ export default function NounsListPage() {
                   )}
                 </td>
                 <td style={{ fontSize: '0.85em', color: '#666' }}>{n.number_type ?? ''}</td>
+                <td style={{ fontSize: '0.85em', color: '#555' }}>{deByLexeme.get(n.id) ?? ''}</td>
               </tr>
             ))}
           </tbody>

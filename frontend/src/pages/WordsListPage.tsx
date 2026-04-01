@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { Lexeme } from '../types'
+import { Lexeme, LexemeTranslation } from '../types'
 import { Nav } from '../components/Nav'
 import { genderBg } from '../utils/nouns'
 import { aspectBg } from '../utils/theme'
@@ -37,9 +37,18 @@ function entryLabel(e: Lexeme) {
 
 export default function WordsListPage() {
   const [entries, setEntries] = useState<Lexeme[]>([])
+  const [deByLexeme, setDeByLexeme] = useState<Map<number, string>>(new Map())
 
   useEffect(() => {
-    api.get<Lexeme[]>('/words').then(setEntries)
+    Promise.all([
+      api.get<Lexeme[]>('/words'),
+      api.get<LexemeTranslation[]>('/lexeme-translations'),
+    ]).then(([es, trs]) => {
+      setEntries(es)
+      setDeByLexeme(new Map(
+        trs.filter(t => t.lang === 'de').map(t => [t.lexeme_id, t.text])
+      ))
+    })
   }, [])
 
   return (
@@ -59,6 +68,7 @@ export default function WordsListPage() {
               <th>Word</th>
               <th>POS</th>
               <th>Info</th>
+              <th>de</th>
             </tr>
           </thead>
           <tbody>
@@ -96,6 +106,7 @@ export default function WordsListPage() {
                     </>
                   )}
                 </td>
+                <td style={{ fontSize: '0.85em', color: '#555' }}>{deByLexeme.get(e.id) ?? ''}</td>
               </tr>
             ))}
           </tbody>
