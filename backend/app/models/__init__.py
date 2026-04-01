@@ -1,10 +1,10 @@
-from app.models.verb import Verb, VerbForm, AspectPair, Derivation
+from app.models.verb import Verb, AspectPair, Derivation
 from app.models.entry import Lexeme, LexemeForm, Entry, EntryForm
 from app.models.word_family import WordFamily, WordFamilyMember
 from app.models.chunk import Chunk, ChunkTranslation, ChunkLink, ChunkTag
 
 __all__ = [
-    "Verb", "VerbForm", "AspectPair", "Derivation",
+    "Verb", "AspectPair", "Derivation",
     "Lexeme", "LexemeForm", "Entry", "EntryForm",
     "WordFamily", "WordFamilyMember",
     "Chunk", "ChunkTranslation", "ChunkLink",

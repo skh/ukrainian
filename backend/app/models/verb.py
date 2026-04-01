@@ -26,7 +26,7 @@ class Verb(Base):
     accented = Column(String, nullable=False, unique=True)
     aspect = Column(String, nullable=False)
 
-    forms = relationship("VerbForm", back_populates="verb", cascade="all, delete-orphan")
+    forms = relationship("LexemeForm", foreign_keys="[LexemeForm.verb_id]", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("aspect IN ('ipf', 'pf')", name="ck_verbs_aspect"),
@@ -95,25 +95,3 @@ class Derivation(Base):
     )
 
 
-class VerbForm(Base):
-    __tablename__ = "verb_forms"
-
-    id = Column(Integer, primary_key=True)
-    verb_id = Column(Integer, ForeignKey("verbs.id"), nullable=False)
-    tense = Column(String, nullable=False)
-    person = Column(String, nullable=True)
-    number = Column(String, nullable=True)
-    gender = Column(String, nullable=True)
-    form = Column(String, nullable=False)
-
-    verb = relationship("Verb", back_populates="forms")
-
-    __table_args__ = (
-        CheckConstraint(
-            "tense IN ('present', 'future', 'past', 'imperative')",
-            name="ck_verb_forms_tense",
-        ),
-        CheckConstraint("person IS NULL OR person IN ('1', '2', '3')", name="ck_verb_forms_person"),
-        CheckConstraint("number IS NULL OR number IN ('singular', 'plural')", name="ck_verb_forms_number"),
-        CheckConstraint("gender IS NULL OR gender IN ('masculine', 'feminine', 'neuter')", name="ck_verb_forms_gender"),
-    )

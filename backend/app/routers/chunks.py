@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models.chunk import Chunk, ChunkLink, ChunkTag, ChunkTranslation
 from app.models.verb import Tag
 from app.models.entry import Lexeme, LexemeForm
-from app.models.verb import AspectPair, Verb, VerbForm
+from app.models.verb import AspectPair, Verb
 from app.schemas.chunk import (
     ChunkCreate,
     ChunkLinkRead,
@@ -103,7 +103,7 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
     results: list[SuggestedLink] = []
 
     # verb inflected forms
-    for vf in db.execute(select(VerbForm)).scalars().all():
+    for vf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
         if _strip_accent(vf.form).lower() not in tokens:
             continue
         pair = db.execute(
@@ -137,7 +137,7 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
                                           lexeme_form=lex.accented, matched_form=v.infinitive))
 
     # lexeme inflected forms (nouns/pronouns/numerals)
-    for lf in db.execute(select(LexemeForm)).scalars().all():
+    for lf in db.execute(select(LexemeForm).where(LexemeForm.lexeme_id.isnot(None))).scalars().all():
         if _strip_accent(lf.form).lower() not in tokens:
             continue
         if lf.lexeme_id not in seen_lexeme_ids:
