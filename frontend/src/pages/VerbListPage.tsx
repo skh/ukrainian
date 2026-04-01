@@ -33,7 +33,7 @@ export default function VerbListPage() {
       api.get<PairTag[]>('/pair-tags'),
       api.get<string[]>('/corpora'),
       api.get<VerbFrequency[]>('/frequencies'),
-      api.get<PairTranslation[]>('/pair-translations'),
+      api.get<PairTranslation[]>('/lexeme-translations'),
     ])
     setVerbs(vs)
     setPairs(ps)
@@ -242,7 +242,7 @@ export default function VerbListPage() {
                 style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
                 onClick={() => navigate(`/pairs/${p.id}`)}
                 title={(() => {
-                  const ts = allPairTranslations.filter(t => t.pair_id === p.id)
+                  const ts = allPairTranslations.filter(t => t.lexeme_id === p.lexeme_id)
                   if (ts.length === 0) return undefined
                   const byLang: Record<string, string[]> = {}
                   for (const t of ts) (byLang[t.lang] ??= []).push(t.text)
@@ -267,7 +267,7 @@ export default function VerbListPage() {
                 )}
               </td>
               <td style={{ color: '#555', fontSize: '0.88em', whiteSpace: 'nowrap' }}>
-                {allPairTranslations.filter(t => t.pair_id === p.id && t.lang === 'de').map(t => t.text).join(', ')}
+                {allPairTranslations.filter(t => t.lexeme_id === p.lexeme_id && t.lang === 'de').map(t => t.text).join(', ')}
               </td>
               <td className="col-mobile-hide">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.3rem' }}>

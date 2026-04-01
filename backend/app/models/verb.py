@@ -44,6 +44,10 @@ class AspectPair(Base):
     pf_verb = relationship("Verb", foreign_keys=[pf_verb_id])
     lexeme = relationship("Lexeme", back_populates="pair", uselist=False)
 
+    @property
+    def lexeme_id(self):
+        return self.lexeme.id if self.lexeme else None
+
     __table_args__ = (
         UniqueConstraint("ipf_verb_id", "pf_verb_id", name="uq_aspect_pairs"),
         CheckConstraint("ipf_verb_id IS NOT NULL OR pf_verb_id IS NOT NULL", name="ck_aspect_pairs_not_both_null"),
@@ -62,15 +66,6 @@ class VerbFrequency(Base):
     __table_args__ = (
         UniqueConstraint("verb_id", "corpus", name="uq_verb_frequencies"),
     )
-
-
-class PairTranslation(Base):
-    __tablename__ = "pair_translations"
-
-    id = Column(Integer, primary_key=True)
-    pair_id = Column(Integer, ForeignKey("aspect_pairs.id", ondelete="CASCADE"), nullable=False)
-    lang = Column(String, nullable=False)
-    text = Column(String, nullable=False)
 
 
 class Derivation(Base):

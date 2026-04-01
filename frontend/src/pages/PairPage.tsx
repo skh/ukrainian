@@ -1,85 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
+import { TranslationRow } from '../components/TranslationRow'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
 import { VerbFormData } from '../utils/gorohParser'
-import { Tag, Chunk, PairTranslation, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
+import { Tag, Chunk, LexemeTranslation, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
 import { aspectBg } from '../utils/theme'
 import { gorohUrl } from '../config'
 import { TagChip } from '../widgets/TagChip'
-
-interface TranslationItem { id: number; text: string }
-
-function TranslationRow({ lang, items, onAdd, onUpdate, onDelete }: {
-  lang: string
-  items: TranslationItem[]
-  onAdd: (text: string) => void
-  onUpdate: (id: number, text: string) => void
-  onDelete: (id: number) => void
-}) {
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [editText, setEditText] = useState('')
-  const [adding, setAdding] = useState(false)
-  const [newText, setNewText] = useState('')
-
-  function commitAdd() {
-    const t = newText.trim()
-    if (t) { onAdd(t); setNewText('') }
-    setAdding(false)
-  }
-
-  function commitEdit(id: number) {
-    const t = editText.trim()
-    if (t) onUpdate(id, t)
-    setEditingId(null)
-  }
-
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem 0.4rem', fontSize: '0.85em', marginBottom: '0.15rem' }}>
-      <span style={{ color: '#888', minWidth: '1.5rem' }}>{lang}</span>
-      {items.map(item => (
-        editingId === item.id ? (
-          <span key={item.id} style={{ display: 'inline-flex', gap: '0.25rem' }}>
-            <input
-              value={editText}
-              onChange={e => setEditText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') commitEdit(item.id); if (e.key === 'Escape') setEditingId(null) }}
-              style={{ width: '16rem', maxWidth: '100%' }}
-              autoFocus
-            />
-            <button onClick={() => commitEdit(item.id)}>Save</button>
-            <button onClick={() => setEditingId(null)}>Cancel</button>
-          </span>
-        ) : (
-          <span key={item.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-            <span>{item.text}</span>
-            <button onClick={() => { setEditingId(item.id); setEditText(item.text) }}
-              style={{ fontSize: '0.75em', padding: '0 0.3em' }}>edit</button>
-            <button onClick={() => onDelete(item.id)}
-              style={{ fontSize: '0.75em', padding: '0 0.3em', color: '#c00' }}>×</button>
-          </span>
-        )
-      ))}
-      {adding ? (
-        <span style={{ display: 'inline-flex', gap: '0.25rem' }}>
-          <input
-            value={newText}
-            onChange={e => setNewText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') commitAdd(); if (e.key === 'Escape') { setAdding(false); setNewText('') } }}
-            style={{ width: '16rem', maxWidth: '100%' }}
-            autoFocus
-          />
-          <button onClick={commitAdd}>Add</button>
-          <button onClick={() => { setAdding(false); setNewText('') }}>Cancel</button>
-        </span>
-      ) : (
-        <button onClick={() => setAdding(true)}
-          style={{ fontSize: '0.75em', padding: '0 0.3em', color: '#666' }}>+</button>
-      )}
-    </div>
-  )
-}
 
 export default function PairPage() {
   const { id } = useParams<{ id: string }>()
@@ -97,13 +26,13 @@ export default function PairPage() {
   const [fetchError, setFetchError] = useState<string | null>(null)
 
   const [langs, setLangs] = useState<string[]>([])
-  const [pairTranslations, setPairTranslations] = useState<PairTranslation[]>([])
+  const [translations, setTranslations] = useState<LexemeTranslation[]>([])
   const [wordFamilies, setWordFamilies] = useState<WordFamily[]>([])
 
   useEffect(() => {
     api.get<AspectPair>(`/aspect-pairs/${pairId}`).then(async p => {
       setPair(p)
-      const [ipf, pf, ts, cks, corp, freqs, ls, pts] = await Promise.all([
+      const [ipf, pf, ts, cks, corp, freqs, ls, trs] = await Promise.all([
         p.ipf_verb_id != null ? api.get<VerbFormData[]>(`/verb-forms/${p.ipf_verb_id}`) : Promise.resolve([]),
         p.pf_verb_id != null ? api.get<VerbFormData[]>(`/verb-forms/${p.pf_verb_id}`) : Promise.resolve([]),
         api.get<Tag[]>(`/pairs/${pairId}/tags`),
@@ -111,7 +40,7 @@ export default function PairPage() {
         api.get<string[]>('/corpora'),
         api.get<VerbFrequency[]>(`/pairs/${pairId}/frequencies`),
         api.get<string[]>('/languages'),
-        api.get<PairTranslation[]>(`/pairs/${pairId}/translations`),
+        p.lexeme_id != null ? api.get<LexemeTranslation[]>(`/lexemes/${p.lexeme_id}/translations`) : Promise.resolve([]),
       ])
       setIpfForms(ipf)
       setPfForms(pf)
@@ -120,7 +49,7 @@ export default function PairPage() {
       setCorpora(corp)
       setFrequencies(freqs)
       setLangs(ls)
-      setPairTranslations(pts)
+      setTranslations(trs)
       setWordFamilies(await api.get<WordFamily[]>(`/pairs/${pairId}/word-families`))
     })
   }, [pairId])
@@ -144,19 +73,20 @@ export default function PairPage() {
     }
   }
 
-  async function addPairTranslation(lang: string, text: string) {
-    const t = await api.post<PairTranslation>(`/pairs/${pairId}/translations`, { lang, text })
-    setPairTranslations(prev => [...prev, t])
+  async function addTranslation(lang: string, text: string) {
+    if (!pair?.lexeme_id) return
+    const t = await api.post<LexemeTranslation>(`/lexemes/${pair.lexeme_id}/translations`, { lang, text })
+    setTranslations(prev => [...prev, t])
   }
 
-  async function updatePairTranslation(id: number, text: string) {
-    const t = await api.put<PairTranslation>(`/pair-translations/${id}`, { text })
-    setPairTranslations(prev => prev.map(x => x.id === id ? t : x))
+  async function updateTranslation(id: number, text: string) {
+    const t = await api.put<LexemeTranslation>(`/lexeme-translations/${id}`, { text })
+    setTranslations(prev => prev.map(x => x.id === id ? t : x))
   }
 
-  async function deletePairTranslation(id: number) {
-    await api.delete(`/pair-translations/${id}`)
-    setPairTranslations(prev => prev.filter(x => x.id !== id))
+  async function deleteTranslation(id: number) {
+    await api.delete(`/lexeme-translations/${id}`)
+    setTranslations(prev => prev.filter(x => x.id !== id))
   }
 
   async function createFamilyWithPair() {
@@ -209,10 +139,10 @@ export default function PairPage() {
             <TranslationRow
               key={lang}
               lang={lang}
-              items={pairTranslations.filter(t => t.lang === lang)}
-              onAdd={text => addPairTranslation(lang, text)}
-              onUpdate={(id, text) => updatePairTranslation(id, text)}
-              onDelete={id => deletePairTranslation(id)}
+              items={translations.filter(t => t.lang === lang)}
+              onAdd={text => addTranslation(lang, text)}
+              onUpdate={(id, text) => updateTranslation(id, text)}
+              onDelete={id => deleteTranslation(id)}
             />
           ))}
         </div>

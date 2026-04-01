@@ -16,6 +16,7 @@ class Lexeme(Base):
     pair_id = Column(Integer, ForeignKey("aspect_pairs.id", ondelete="CASCADE"), nullable=True, unique=True)
 
     forms = relationship("LexemeForm", foreign_keys="[LexemeForm.lexeme_id]", cascade="all, delete-orphan")
+    translations = relationship("LexemeTranslation", cascade="all, delete-orphan")
     pair = relationship("AspectPair", back_populates="lexeme")
 
     __table_args__ = (
@@ -23,6 +24,15 @@ class Lexeme(Base):
         CheckConstraint("gender IN ('m', 'f', 'n') OR gender IS NULL", name="ck_lexemes_gender"),
         CheckConstraint("number_type IN ('sg', 'pl', 'both') OR number_type IS NULL", name="ck_lexemes_number_type"),
     )
+
+
+class LexemeTranslation(Base):
+    __tablename__ = "lexeme_translations"
+
+    id = Column(Integer, primary_key=True)
+    lexeme_id = Column(Integer, ForeignKey("lexemes.id", ondelete="CASCADE"), nullable=False)
+    lang = Column(String, nullable=False)
+    text = Column(String, nullable=False)
 
 
 class LexemeForm(Base):

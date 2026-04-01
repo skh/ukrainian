@@ -24,5 +24,6 @@ class AspectPairRead(BaseModel):
     pf_verb_id: Optional[int] = None
     ipf_verb: Optional[VerbRead] = None
     pf_verb: Optional[VerbRead] = None
+    lexeme_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

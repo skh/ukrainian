@@ -1,13 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
-class PairTranslationRead(BaseModel):
+class LexemeTranslationRead(BaseModel):
     id: int
-    pair_id: int
+    lexeme_id: int
     lang: str
     text: str
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Keep as alias for any remaining references
+PairTranslationRead = LexemeTranslationRead
 
 
 class TranslationWrite(BaseModel):

@@ -195,24 +195,24 @@ export function generateInfinitiveQuestion(
 export function generateTranslationQuestion(
   verbsMap: Map<number, Verb>,
   fMap: Map<number, VerbForm[]>,
-  verbToPairId: Map<number, number>,
+  verbToLexemeId: Map<number, number>,
   pairTranslations: PairTranslation[],
   lang: string = 'de',
 ): Question | null {
-  // Build pair_id → [text, ...] map for the target language
-  const transByPair = new Map<number, string[]>()
+  // Build lexeme_id → [text, ...] map for the target language
+  const transByLexeme = new Map<number, string[]>()
   for (const t of pairTranslations) {
     if (t.lang === lang) {
-      const arr = transByPair.get(t.pair_id) ?? []
+      const arr = transByLexeme.get(t.lexeme_id) ?? []
       arr.push(t.text)
-      transByPair.set(t.pair_id, arr)
+      transByLexeme.set(t.lexeme_id, arr)
     }
   }
 
-  // Only verbs that have a pair with at least one translation in the target lang
+  // Only verbs that have a lexeme with at least one translation in the target lang
   const eligible = Array.from(fMap.keys()).filter(verbId => {
-    const pairId = verbToPairId.get(verbId)
-    return pairId != null && (transByPair.get(pairId)?.length ?? 0) > 0
+    const lexemeId = verbToLexemeId.get(verbId)
+    return lexemeId != null && (transByLexeme.get(lexemeId)?.length ?? 0) > 0
   })
   if (eligible.length === 0) return null
 
@@ -230,8 +230,8 @@ export function generateTranslationQuestion(
     const form = pickRandom(forms)
     const correctForm = selectForm(form.form, form.tense, form.person, form.number)
 
-    const pairId = verbToPairId.get(verbId)!
-    const translationText = (transByPair.get(pairId) ?? []).join(', ')
+    const lexemeId = verbToLexemeId.get(verbId)!
+    const translationText = (transByLexeme.get(lexemeId) ?? []).join(', ')
 
     const pronoun = getPronoun(form.tense, form.person, form.number, form.gender)
     const isSyntheticFuture = form.tense === 'future' && verb.aspect === 'ipf'

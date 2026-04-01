@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { Entry } from '../types'
+import { Entry, LexemeTranslation } from '../types'
 import { parseNoun } from '../utils/nounParser'
 import { Nav } from '../components/Nav'
+import { TranslationRow } from '../components/TranslationRow'
 import { CASE_LABELS, CASES, genderBg } from '../utils/nouns'
 
 export default function NounPage() {
@@ -17,14 +18,40 @@ export default function NounPage() {
   const [parseError, setParseError] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [langs, setLangs] = useState<string[]>([])
+  const [translations, setTranslations] = useState<LexemeTranslation[]>([])
 
   useEffect(() => {
-    if (id) api.get<Entry>(`/nouns/${id}`).then(n => {
-      setNoun(n)
-      setGender((n.gender ?? '') as 'm' | 'f' | 'n' | '')
-      setNumberType(n.number_type ?? 'both')
-    })
+    if (id) {
+      api.get<Entry>(`/nouns/${id}`).then(n => {
+        setNoun(n)
+        setGender((n.gender ?? '') as 'm' | 'f' | 'n' | '')
+        setNumberType(n.number_type ?? 'both')
+      })
+      Promise.all([
+        api.get<string[]>('/languages'),
+        api.get<LexemeTranslation[]>(`/lexemes/${id}/translations`),
+      ]).then(([ls, trs]) => {
+        setLangs(ls)
+        setTranslations(trs)
+      })
+    }
   }, [id])
+
+  async function addTranslation(lang: string, text: string) {
+    const t = await api.post<LexemeTranslation>(`/lexemes/${id}/translations`, { lang, text })
+    setTranslations(prev => [...prev, t])
+  }
+
+  async function updateTranslation(tid: number, text: string) {
+    const t = await api.put<LexemeTranslation>(`/lexeme-translations/${tid}`, { text })
+    setTranslations(prev => prev.map(x => x.id === tid ? t : x))
+  }
+
+  async function deleteTranslation(tid: number) {
+    await api.delete(`/lexeme-translations/${tid}`)
+    setTranslations(prev => prev.filter(x => x.id !== tid))
+  }
 
   async function saveMeta(e: React.FormEvent) {
     e.preventDefault()
@@ -96,6 +123,21 @@ export default function NounPage() {
           </span>
         )}
       </h1>
+
+      {langs.length > 0 && (
+        <div style={{ marginBottom: '1rem' }}>
+          {langs.map(lang => (
+            <TranslationRow
+              key={lang}
+              lang={lang}
+              items={translations.filter(t => t.lang === lang)}
+              onAdd={text => addTranslation(lang, text)}
+              onUpdate={(tid, text) => updateTranslation(tid, text)}
+              onDelete={tid => deleteTranslation(tid)}
+            />
+          ))}
+        </div>
+      )}
 
       <form onSubmit={saveMeta} style={{ marginBottom: '1.5rem' }}>
         <label>

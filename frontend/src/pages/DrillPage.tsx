@@ -160,7 +160,7 @@ function VerbPairPopup({ pairId, verbs, pairs, formsByVerbId, pairTranslations }
   const displayForms = formsByVerbId.get(displayVerb.id) ?? []
   const displayAspect = displayVerb.aspect
 
-  const translations = pairTranslations.filter(t => t.pair_id === pairId)
+  const translations = pairTranslations.filter(t => t.lexeme_id === pair.lexeme_id)
   const byLang = translations.reduce<Record<string, string[]>>((acc, t) => {
     ;(acc[t.lang] ??= []).push(t.text); return acc
   }, {})
@@ -324,6 +324,7 @@ export default function DrillPage() {
   const [pairTags, setPairTags] = useState<Array<{ pair_id: number; tag_id: number }>>([])
   const [pairTranslations, setPairTranslations] = useState<PairTranslation[]>([])
   const [verbToPairId, setVerbToPairId] = useState<Map<number, number>>(new Map())
+  const [verbToLexemeId, setVerbToLexemeId] = useState<Map<number, number>>(new Map())
 
   const [drillMode, setDrillMode] = useState<'verbs' | 'chunks' | 'mixed'>('verbs')
   const [reDrillMode, setReDrillMode] = useState(false)
@@ -342,7 +343,7 @@ export default function DrillPage() {
       api.get<VerbFormRead[]>('/verb-forms'),
       api.get<Tag[]>('/tags'),
       api.get<Array<{ pair_id: number; tag_id: number }>>('/pair-tags'),
-      api.get<PairTranslation[]>('/pair-translations'),
+      api.get<PairTranslation[]>('/lexeme-translations'),
       api.get<Chunk[]>('/chunks'),
     ]).then(([vs, ps, fs, tags, pts, trs, chunks]) => {
       setVerbs(vs)
@@ -358,11 +359,17 @@ export default function DrillPage() {
       setPairTags(pts)
       setPairTranslations(trs)
       const v2p = new Map<number, number>()
+      const v2l = new Map<number, number>()
       for (const p of ps) {
         if (p.ipf_verb_id !== null) v2p.set(p.ipf_verb_id, p.id)
         if (p.pf_verb_id !== null) v2p.set(p.pf_verb_id, p.id)
+        if (p.lexeme_id !== null) {
+          if (p.ipf_verb_id !== null) v2l.set(p.ipf_verb_id, p.lexeme_id)
+          if (p.pf_verb_id !== null) v2l.set(p.pf_verb_id, p.lexeme_id)
+        }
       }
       setVerbToPairId(v2p)
+      setVerbToLexemeId(v2l)
       const drillable = chunks.filter(c => c.translations.length > 0)
       setAllChunks(drillable)
       const langs = [...new Set(drillable.flatMap(c => c.translations.map(t => t.lang)))]
@@ -417,7 +424,7 @@ export default function DrillPage() {
         ? generateInfinitiveQuestion(verbsMap, filteredForms)
         : type === 'number'
         ? generateNumberQuestion(verbsMap, filteredForms)
-        : generateTranslationQuestion(verbsMap, filteredForms, verbToPairId, pairTranslations)
+        : generateTranslationQuestion(verbsMap, filteredForms, verbToLexemeId, pairTranslations)
       if (q) return q
     }
     return null
@@ -568,7 +575,9 @@ export default function DrillPage() {
 
   function renderTranslations(pairId: number | undefined) {
     if (!pairId) return null
-    const ts = pairTranslations.filter(t => t.pair_id === pairId)
+    const lexemeId = pairs.find(p => p.id === pairId)?.lexeme_id
+    if (!lexemeId) return null
+    const ts = pairTranslations.filter(t => t.lexeme_id === lexemeId)
     if (ts.length === 0) return null
     const byLang = ts.reduce<Record<string, string[]>>((acc, t) => {
       ;(acc[t.lang] ??= []).push(t.text)
@@ -812,8 +821,8 @@ export default function DrillPage() {
     if (!verb) return null
     const forms = formsByVerbId.get(hintVerbId) ?? []
     const pairId = verbToPairId.get(hintVerbId)
-    const translations = pairId ? pairTranslations.filter(t => t.pair_id === pairId) : []
     const pair = pairs.find(p => p.id === pairId)
+    const translations = pair?.lexeme_id ? pairTranslations.filter(t => t.lexeme_id === pair.lexeme_id) : []
     const partnerVerbId = pair
       ? (verb.aspect === 'ipf' ? pair.pf_verb_id : pair.ipf_verb_id)
       : null

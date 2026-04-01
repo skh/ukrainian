@@ -16,6 +16,7 @@ export interface AspectPair {
   pf_verb_id: number | null
   ipf_verb?: Verb
   pf_verb?: Verb
+  lexeme_id: number | null
 }
 
 export interface VerbFrequency {
@@ -26,12 +27,14 @@ export interface VerbFrequency {
   fetched_at: string
 }
 
-export interface PairTranslation {
+export interface LexemeTranslation {
   id: number
-  pair_id: number
+  lexeme_id: number
   lang: string
   text: string
 }
+
+export type PairTranslation = LexemeTranslation
 
 export interface ChunkTranslation {
   id: number
