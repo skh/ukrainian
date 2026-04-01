@@ -7,12 +7,16 @@ import { aspectBg } from '../utils/theme'
 import { stripAccent } from '../utils/forms'
 import { gorohLexemeUrl } from '../config'
 
-type Pos = 'noun' | 'adjective' | 'adverb'
+type Pos = 'noun' | 'adjective' | 'adverb' | 'conjunction' | 'numeral' | 'preposition' | 'pronoun'
 
 const posBg: Record<string, string> = {
   adjective: '#e9d5ff',
   adverb: '#fce7f3',
   noun: '#d1fae5',
+  conjunction: '#fef9c3',
+  numeral: '#ffedd5',
+  preposition: '#e0f2fe',
+  pronoun: '#fae8ff',
 }
 
 function MemberChip({ lexeme, onRemove }: { lexeme: Lexeme; onRemove: () => void }) {
@@ -174,7 +178,7 @@ export default function WordFamilyPage() {
         style={{ width: '18rem', maxWidth: '100%' }}
       />
       {' '}
-      {(['noun', 'adjective', 'adverb'] as Pos[]).map(pos => (
+      {(['noun', 'adjective', 'adverb', 'conjunction', 'numeral', 'preposition', 'pronoun'] as Pos[]).map(pos => (
         <label key={pos} style={{ marginRight: '0.6rem' }}>
           <input
             type="radio"

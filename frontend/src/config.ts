@@ -7,6 +7,6 @@ export function gorohUrl(infinitive: string): string {
 }
 
 // TODO: confirm goroh URL patterns per POS and implement
-export function gorohLexemeUrl(_form: string, _pos: 'noun' | 'adjective' | 'adverb'): string | null {
+export function gorohLexemeUrl(_form: string, _pos: 'noun' | 'adjective' | 'adverb' | 'conjunction' | 'numeral' | 'preposition' | 'pronoun'): string | null {
   return null
 }

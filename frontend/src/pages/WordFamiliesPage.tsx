@@ -9,6 +9,10 @@ const posBg: Record<string, string> = {
   adjective: '#e9d5ff',
   adverb: '#fce7f3',
   noun: '#d1fae5',
+  conjunction: '#fef9c3',
+  numeral: '#ffedd5',
+  preposition: '#e0f2fe',
+  pronoun: '#fae8ff',
 }
 
 function MemberChips({ members }: { members: Lexeme[] }) {

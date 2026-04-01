@@ -76,7 +76,7 @@ export interface PairTag {
 
 export interface Lexeme {
   id: number
-  pos: 'pair' | 'noun' | 'adjective' | 'adverb'
+  pos: 'pair' | 'noun' | 'adjective' | 'adverb' | 'conjunction' | 'numeral' | 'preposition' | 'pronoun'
   form: string
   pair_id: number | null
   pair?: AspectPair
