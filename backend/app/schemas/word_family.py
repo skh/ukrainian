@@ -17,12 +17,12 @@ class LexemeRead(BaseModel):
 
 class LexemeCreate(BaseModel):
     form: str
-    pos: Literal["noun", "adjective", "adverb"]
+    pos: Literal["noun", "adjective", "adverb", "conjunction", "numeral", "preposition", "pronoun"]
 
 
 class LexemeUpdate(BaseModel):
     form: Optional[str] = None
-    pos: Optional[Literal["noun", "adjective", "adverb"]] = None
+    pos: Optional[Literal["noun", "adjective", "adverb", "conjunction", "numeral", "preposition", "pronoun"]] = None
 
 
 class WordFamilyRead(BaseModel):

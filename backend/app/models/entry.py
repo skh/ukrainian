@@ -18,7 +18,7 @@ class Entry(Base):
     lexeme = relationship("Lexeme", back_populates="entry", uselist=False)
 
     __table_args__ = (
-        CheckConstraint("pos IN ('noun', 'adjective', 'adverb')", name="ck_entries_pos"),
+        CheckConstraint("pos IN ('noun', 'adjective', 'adverb', 'conjunction', 'numeral', 'preposition', 'pronoun')", name="ck_entries_pos"),
         CheckConstraint("gender IN ('m', 'f', 'n') OR gender IS NULL", name="ck_entries_gender"),
         CheckConstraint(
             "number_type IN ('sg', 'pl', 'both') OR number_type IS NULL",

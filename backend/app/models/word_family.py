@@ -23,7 +23,7 @@ class Lexeme(Base):
             "(pos = 'pair' AND pair_id IS NOT NULL) OR (pos != 'pair' AND pair_id IS NULL)",
             name="ck_lexemes_pair_id_consistent",
         ),
-        CheckConstraint("pos IN ('pair', 'noun', 'adjective', 'adverb')", name="ck_lexemes_pos"),
+        CheckConstraint("pos IN ('pair', 'noun', 'adjective', 'adverb', 'conjunction', 'numeral', 'preposition', 'pronoun')", name="ck_lexemes_pos"),
     )
 
 
