@@ -23,7 +23,7 @@ class ChunkLinkRead(BaseModel):
     # for verbs: pair_id + label "ipf / pf"
     pair_id: Optional[int] = None
     pair_label: Optional[str] = None
-    # for nouns/other entries: entry_id
+    # for non-pair lexemes: entry_id == lexeme_id (kept for backwards compat)
     entry_id: Optional[int] = None
     entry_gender: Optional[str] = None  # 'm'/'f'/'n' for nouns
 

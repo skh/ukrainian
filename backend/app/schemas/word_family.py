@@ -2,26 +2,18 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.aspect_pair import AspectPairRead
+from app.schemas.entry import LexemeRead
 
 
-class LexemeRead(BaseModel):
-    id: int
-    pos: str
-    form: str
-    pair_id: Optional[int] = None
-    pair: Optional[AspectPairRead] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class LexemeCreate(BaseModel):
-    form: str
+class WFLexemeCreate(BaseModel):
+    """Schema for creating a new lexeme directly within a word family."""
+    accented: str
     pos: Literal["noun", "adjective", "adverb", "conjunction", "numeral", "preposition", "pronoun"]
 
 
-class LexemeUpdate(BaseModel):
-    form: Optional[str] = None
+class WFLexemeUpdate(BaseModel):
+    accented: Optional[str] = None
+    lemma: Optional[str] = None
     pos: Optional[Literal["noun", "adjective", "adverb", "conjunction", "numeral", "preposition", "pronoun"]] = None
 
 
@@ -30,3 +22,8 @@ class WordFamilyRead(BaseModel):
     members: list[LexemeRead]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# Keep old names as aliases
+LexemeCreate = WFLexemeCreate
+LexemeUpdate = WFLexemeUpdate
