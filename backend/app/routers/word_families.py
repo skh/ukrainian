@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session, selectinload
 from app.crud import get_or_404
 from app.database import get_db
 from app.models.verb import AspectPair
-from app.models.word_family import Lexeme, WordFamily, WordFamilyMember
-from app.schemas.word_family import LexemeCreate, LexemeRead, WordFamilyRead
+from app.models.entry import Lexeme
+from app.models.word_family import WordFamily, WordFamilyMember
+from app.schemas.entry import LexemeRead
+from app.schemas.word_family import WFLexemeCreate, WordFamilyRead
 
 router = APIRouter(tags=["word-families"])
 
@@ -89,9 +91,10 @@ def remove_member(family_id: int, lexeme_id: int, db: Session = Depends(get_db))
 
 
 @router.post("/api/word-families/{family_id}/lexemes", response_model=LexemeRead, status_code=201)
-def create_and_add_lexeme(family_id: int, data: LexemeCreate, db: Session = Depends(get_db)):
+def create_and_add_lexeme(family_id: int, data: WFLexemeCreate, db: Session = Depends(get_db)):
     family = get_or_404(db, WordFamily, family_id)
-    lexeme = Lexeme(pos=data.pos, form=data.form, pair_id=None)
+    lemma = data.accented.replace('\u0301', '')
+    lexeme = Lexeme(pos=data.pos, lemma=lemma, accented=data.accented)
     db.add(lexeme)
     db.commit()
     db.refresh(lexeme)
