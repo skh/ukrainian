@@ -36,7 +36,7 @@ function MemberChips({ members }: { members: Lexeme[] }) {
           </Link>
         ) : (
           <span key={m.id} style={{ background: posBg[m.pos] ?? '#eee', padding: '0.1em 0.35em', borderRadius: '3px', fontSize: '0.9em' }}>
-            {m.form}
+            {m.accented}
             <span style={{ color: '#888', fontSize: '0.75em', marginLeft: '0.3em' }}>{m.pos}</span>
           </span>
         )

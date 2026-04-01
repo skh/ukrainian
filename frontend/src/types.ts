@@ -48,6 +48,7 @@ export interface ChunkLink {
   lexeme_form: string | null
   pair_id: number | null
   pair_label: string | null
+  // for non-pair lexemes: entry_id == lexeme_id (backwards compat)
   entry_id: number | null
   entry_gender: string | null
 }
@@ -74,18 +75,33 @@ export interface PairTag {
   tag_id: number
 }
 
+export interface LexemeForm {
+  id: number
+  lexeme_id: number
+  tags: string   // e.g. "nom,sg" or "nom,sg,m"
+  form: string
+}
+
 export interface Lexeme {
   id: number
   pos: 'pair' | 'noun' | 'adjective' | 'adverb' | 'conjunction' | 'numeral' | 'preposition' | 'pronoun'
-  form: string
+  lemma: string
+  accented: string
+  gender: 'm' | 'f' | 'n' | null
+  number_type: 'sg' | 'pl' | 'both' | null
   pair_id: number | null
   pair?: AspectPair
+  forms?: LexemeForm[]
 }
 
 export interface WordFamily {
   id: number
   members: Lexeme[]
 }
+
+// Entry is an alias for Lexeme (for backwards compat with noun/word pages)
+export type Entry = Lexeme
+export type EntryForm = LexemeForm
 
 export type DerivationType = 'prefix' | 'suffix' | 'stem_change' | 'stress_change' | 'reflexive'
 
@@ -107,21 +123,4 @@ export interface Derivation {
   value: string | null
   source_verb: Verb
   derived_verb: Verb
-}
-
-export interface EntryForm {
-  id: number
-  entry_id: number
-  tags: string   // e.g. "nom,sg" or "nom,sg,m"
-  form: string
-}
-
-export interface Entry {
-  id: number
-  pos: 'noun' | 'adjective' | 'adverb'
-  lemma: string
-  accented: string
-  gender: 'm' | 'f' | 'n' | null
-  number_type: 'sg' | 'pl' | 'both' | null
-  forms?: EntryForm[]
 }

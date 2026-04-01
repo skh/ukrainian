@@ -340,7 +340,7 @@ export default function PairPage() {
                     </span>
                   ) : (
                     <span key={m.id} style={{ background: '#eee', padding: '0.1em 0.35em', borderRadius: '3px', fontSize: '0.9em' }}>
-                      {m.form} <span style={{ color: '#888', fontSize: '0.75em' }}>{m.pos}</span>
+                      {m.accented} <span style={{ color: '#888', fontSize: '0.75em' }}>{m.pos}</span>
                     </span>
                   )
                 ))}

@@ -48,12 +48,12 @@ function MemberChip({ lexeme, onRemove }: { lexeme: Lexeme; onRemove: () => void
     )
   }
 
-  const gorohHref = gorohLexemeUrl(lexeme.form, lexeme.pos as Pos)
+  const gorohHref = gorohLexemeUrl(lexeme.accented, lexeme.pos as Pos)
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', background: posBg[lexeme.pos] ?? '#eee', padding: '0.15em 0.4em', borderRadius: '4px' }}>
       {gorohHref
-        ? <a href={gorohHref} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>{lexeme.form}</a>
-        : <span>{lexeme.form}</span>
+        ? <a href={gorohHref} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>{lexeme.accented}</a>
+        : <span>{lexeme.accented}</span>
       }
       <span style={{ color: '#888', fontSize: '0.75em', marginLeft: '0.3em' }}>{lexeme.pos}</span>
       {removeBtn}
@@ -118,7 +118,7 @@ export default function WordFamilyPage() {
   async function addLexeme() {
     if (!newLexemeForm.trim()) return
     try {
-      await api.post<Lexeme>(`/word-families/${familyId}/lexemes`, { form: newLexemeForm.trim(), pos: newLexemePos })
+      await api.post<Lexeme>(`/word-families/${familyId}/lexemes`, { accented: newLexemeForm.trim(), pos: newLexemePos })
       await load()
       setNewLexemeForm('')
       setMessage('')
@@ -174,7 +174,7 @@ export default function WordFamilyPage() {
         value={newLexemeForm}
         onChange={e => setNewLexemeForm(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') addLexeme() }}
-        placeholder="Base form (unaccented)…"
+        placeholder="Accented form…"
         style={{ width: '18rem', maxWidth: '100%' }}
       />
       {' '}

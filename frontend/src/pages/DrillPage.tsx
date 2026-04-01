@@ -204,7 +204,7 @@ function ChunkLinksHint({ links, verbs, pairs, formsByVerbId, pairTranslations }
   async function toggle(link: ChunkLink) {
     if (openId === link.id) { setOpenId(null); return }
     setOpenId(link.id)
-    if (link.entry_id && !nounCache.has(link.entry_id)) {
+    if (link.entry_id && link.lexeme_pos === 'noun' && !nounCache.has(link.entry_id)) {
       const entry = await api.get<Entry>(`/nouns/${link.entry_id}`)
       setNounCache(prev => new Map(prev).set(link.entry_id!, entry))
     }

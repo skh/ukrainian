@@ -234,7 +234,7 @@ export default function ChunkPage() {
                   {l.pair_label ?? l.lexeme_form ?? '?'}
                 </Link>
               ) : l.entry_id ? (
-                <Link to={`/nouns/${l.entry_id}`} style={{ fontStyle: 'italic' }}>
+                <Link to={l.lexeme_pos === 'noun' ? `/nouns/${l.entry_id}` : `/words/${l.entry_id}`} style={{ fontStyle: 'italic' }}>
                   {l.lexeme_form ?? '?'}
                 </Link>
               ) : (
