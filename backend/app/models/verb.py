@@ -42,6 +42,7 @@ class AspectPair(Base):
 
     ipf_verb = relationship("Verb", foreign_keys=[ipf_verb_id])
     pf_verb = relationship("Verb", foreign_keys=[pf_verb_id])
+    lexeme = relationship("Lexeme", back_populates="pair", uselist=False)
 
     __table_args__ = (
         UniqueConstraint("ipf_verb_id", "pf_verb_id", name="uq_aspect_pairs"),

@@ -1,30 +1,7 @@
-from sqlalchemy import CheckConstraint, Column, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-
-
-class Lexeme(Base):
-    __tablename__ = "lexemes"
-
-    id = Column(Integer, primary_key=True)
-    pos = Column(String, nullable=False)
-    form = Column(String, nullable=False)
-    pair_id = Column(Integer, ForeignKey("aspect_pairs.id", ondelete="CASCADE"), nullable=True)
-    entry_id = Column(Integer, ForeignKey("entries.id", ondelete="SET NULL"), nullable=True)
-
-    pair = relationship("AspectPair", foreign_keys=[pair_id])
-    entry = relationship("Entry", foreign_keys=[entry_id], back_populates="lexeme")
-
-    __table_args__ = (
-        UniqueConstraint("pair_id", name="uq_lexemes_pair_id"),
-        UniqueConstraint("entry_id", name="uq_lexemes_entry_id"),
-        CheckConstraint(
-            "(pos = 'pair' AND pair_id IS NOT NULL) OR (pos != 'pair' AND pair_id IS NULL)",
-            name="ck_lexemes_pair_id_consistent",
-        ),
-        CheckConstraint("pos IN ('pair', 'noun', 'adjective', 'adverb', 'conjunction', 'numeral', 'preposition', 'pronoun')", name="ck_lexemes_pos"),
-    )
 
 
 class WordFamily(Base):
