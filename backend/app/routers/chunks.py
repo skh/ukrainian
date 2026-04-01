@@ -104,8 +104,7 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
 
     # verb inflected forms
     for vf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
-        variants = [v.strip() for v in vf.form.split(',')]
-        if not any(_strip_accent(v).lower() in tokens for v in variants):
+        if _strip_accent(vf.form).lower() not in tokens:
             continue
         pair = db.execute(
             select(AspectPair).where(
@@ -139,16 +138,14 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
 
     # lexeme inflected forms (nouns/pronouns/numerals)
     for lf in db.execute(select(LexemeForm).where(LexemeForm.lexeme_id.isnot(None))).scalars().all():
-        variants = [v.strip() for v in lf.form.split(',')]
-        matched = next((v for v in variants if _strip_accent(v).lower() in tokens), None)
-        if not matched:
+        if _strip_accent(lf.form).lower() not in tokens:
             continue
         if lf.lexeme_id not in seen_lexeme_ids:
             lex = db.get(Lexeme, lf.lexeme_id)
             if lex:
                 seen_lexeme_ids.add(lex.id)
                 results.append(SuggestedLink(lexeme_id=lex.id, lexeme_pos=lex.pos,
-                                              lexeme_form=lex.accented, matched_form=matched))
+                                              lexeme_form=lex.accented, matched_form=lf.form))
 
     # lexeme lemmas/accented forms
     for lex in db.execute(select(Lexeme).where(Lexeme.pos != 'pair')).scalars().all():

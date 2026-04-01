@@ -64,13 +64,15 @@ export function parseNoun(text: string): ParsedNoun | null {
     const plForm = cells[2] ?? ''
 
     if (!isBlank(sgForm)) {
-      forms.push({ tags: `${caseKey},sg`, form: sgForm })
+      for (const v of sgForm.split(',').map(s => s.trim()).filter(Boolean))
+        forms.push({ tags: `${caseKey},sg`, form: v })
     } else {
       sgMissing++
     }
 
     if (!isBlank(plForm)) {
-      forms.push({ tags: `${caseKey},pl`, form: plForm })
+      for (const v of plForm.split(',').map(s => s.trim()).filter(Boolean))
+        forms.push({ tags: `${caseKey},pl`, form: v })
     } else {
       plMissing++
     }

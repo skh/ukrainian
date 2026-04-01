@@ -174,8 +174,8 @@ export default function NounPage() {
           </thead>
           <tbody>
             {CASES.map(c => {
-              const sg = noun.forms!.find(f => f.tags === `${c},sg`)?.form
-              const pl = noun.forms!.find(f => f.tags === `${c},pl`)?.form
+              const sg = noun.forms!.filter(f => f.tags === `${c},sg`).map(f => f.form).join(', ') || undefined
+              const pl = noun.forms!.filter(f => f.tags === `${c},pl`).map(f => f.form).join(', ') || undefined
               return (
                 <tr key={c}>
                   <td>{CASE_LABELS[c]}</td>
