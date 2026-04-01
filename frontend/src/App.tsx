@@ -9,6 +9,9 @@ import WordFamilyPage from './pages/WordFamilyPage'
 import FrequencyRefetchPage from './pages/FrequencyRefetchPage'
 import NounsListPage from './pages/NounsListPage'
 import AddNounPage from './pages/AddNounPage'
+import AddWordPage from './pages/AddWordPage'
+import WordPage from './pages/WordPage'
+import WordsListPage from './pages/WordsListPage'
 import NounPage from './pages/NounPage'
 import ChunksListPage from './pages/ChunksListPage'
 import AddChunkPage from './pages/AddChunkPage'
@@ -28,6 +31,9 @@ export default function App() {
         <Route path="/frequencies/refetch" element={<FrequencyRefetchPage />} />
         <Route path="/nouns" element={<NounsListPage />} />
         <Route path="/nouns/add" element={<AddNounPage />} />
+        <Route path="/words" element={<WordsListPage />} />
+        <Route path="/words/add" element={<AddWordPage />} />
+        <Route path="/words/:id" element={<WordPage />} />
         <Route path="/nouns/:id" element={<NounPage />} />
         <Route path="/chunks" element={<ChunksListPage />} />
         <Route path="/chunks/add" element={<AddChunkPage />} />
