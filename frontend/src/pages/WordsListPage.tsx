@@ -20,7 +20,11 @@ const posBg: Record<string, string> = {
 
 function entryPath(e: Lexeme) {
   if (e.pos === 'pair') return e.pair_id ? `/pairs/${e.pair_id}` : '#'
-  return e.pos === 'noun' ? `/nouns/${e.id}` : `/words/${e.id}`
+  if (e.pos === 'noun') return `/nouns/${e.id}`
+  if (e.pos === 'adjective') return `/adjectives/${e.id}`
+  if (e.pos === 'pronoun') return `/pronouns/${e.id}`
+  if (e.pos === 'numeral') return `/numerals/${e.id}`
+  return `/words/${e.id}`
 }
 
 function entryLabel(e: Lexeme) {
@@ -76,6 +80,12 @@ export default function WordsListPage() {
       <Nav />
       <h1>Words</h1>
       <Link to="/nouns/add">Add noun</Link>
+      {' | '}
+      <Link to="/adjectives/add">Add adjective</Link>
+      {' | '}
+      <Link to="/pronouns/add">Add pronoun</Link>
+      {' | '}
+      <Link to="/numerals/add">Add numeral</Link>
       {' | '}
       <Link to="/words/add">Add word</Link>
       <br /><br />

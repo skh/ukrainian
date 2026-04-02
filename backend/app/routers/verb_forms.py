@@ -6,9 +6,9 @@ from app.crud import get_or_404
 from app.database import get_db
 from app.models.verb import Verb
 from app.models.entry import LexemeForm
-from app.schemas.verb_form import VerbFormRead, VerbFormUpdate, VerbFormsBulkCreate
+from app.schemas.verb_form import VerbFormRead, VerbFormUpdate, VerbFormCreate
 
-router = APIRouter(prefix="/api/verb-forms", tags=["verb-forms"])
+router = APIRouter(prefix="/api/verbs", tags=["verb-forms"])
 
 _TENSES  = {"present", "future", "past", "imperative"}
 _PERSONS = {"1", "2", "3"}
@@ -40,26 +40,21 @@ def _to_read(lf: LexemeForm) -> VerbFormRead:
     )
 
 
-@router.get("", response_model=list[VerbFormRead])
-def list_all_verb_forms(db: Session = Depends(get_db)):
-    rows = db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all()
-    return [_to_read(r) for r in rows]
-
-
-@router.get("/{verb_id}", response_model=list[VerbFormRead])
+@router.get("/{verb_id}/forms", response_model=list[VerbFormRead])
 def get_verb_forms(verb_id: int, db: Session = Depends(get_db)):
     get_or_404(db, Verb, verb_id)
     rows = db.execute(select(LexemeForm).where(LexemeForm.verb_id == verb_id)).scalars().all()
     return [_to_read(r) for r in rows]
 
 
-@router.post("", response_model=list[VerbFormRead], status_code=201)
-def create_verb_forms(data: VerbFormsBulkCreate, db: Session = Depends(get_db)):
-    get_or_404(db, Verb, data.verb_id)
+@router.put("/{verb_id}/forms", response_model=list[VerbFormRead])
+def replace_verb_forms(verb_id: int, forms: list[VerbFormCreate], db: Session = Depends(get_db)):
+    get_or_404(db, Verb, verb_id)
+    db.execute(LexemeForm.__table__.delete().where(LexemeForm.verb_id == verb_id))
     created = []
-    for f in data.forms:
+    for f in forms:
         tags = _encode_tags(f.tense, f.person, f.number, f.gender)
-        row = LexemeForm(verb_id=data.verb_id, tags=tags, form=f.form)
+        row = LexemeForm(verb_id=verb_id, tags=tags, form=f.form)
         db.add(row)
         created.append(row)
     db.commit()
@@ -68,8 +63,8 @@ def create_verb_forms(data: VerbFormsBulkCreate, db: Session = Depends(get_db)):
     return [_to_read(r) for r in created]
 
 
-@router.put("/form/{form_id}", response_model=VerbFormRead)
-def update_verb_form(form_id: int, data: VerbFormUpdate, db: Session = Depends(get_db)):
+@router.put("/{verb_id}/forms/{form_id}", response_model=VerbFormRead)
+def update_verb_form(verb_id: int, form_id: int, data: VerbFormUpdate, db: Session = Depends(get_db)):
     form = get_or_404(db, LexemeForm, form_id)
     form.form = data.form
     db.commit()
@@ -77,10 +72,8 @@ def update_verb_form(form_id: int, data: VerbFormUpdate, db: Session = Depends(g
     return _to_read(form)
 
 
-@router.delete("/{verb_id}", status_code=204)
+@router.delete("/{verb_id}/forms", status_code=204)
 def delete_verb_forms(verb_id: int, db: Session = Depends(get_db)):
     get_or_404(db, Verb, verb_id)
-    rows = db.execute(select(LexemeForm).where(LexemeForm.verb_id == verb_id)).scalars().all()
-    for row in rows:
-        db.delete(row)
+    db.execute(LexemeForm.__table__.delete().where(LexemeForm.verb_id == verb_id))
     db.commit()

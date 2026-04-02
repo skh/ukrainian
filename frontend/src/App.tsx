@@ -17,6 +17,9 @@ import ChunksListPage from './pages/ChunksListPage'
 import AddChunkPage from './pages/AddChunkPage'
 import ChunkPage from './pages/ChunkPage'
 import TextAnalysisPage from './pages/TextAnalysisPage'
+import DeclinablePage from './pages/DeclinablePage'
+import AddDeclinablePage from './pages/AddDeclinablePage'
+import DeclinablesListPage from './pages/DeclinablesListPage'
 
 export default function App() {
   return (
@@ -40,6 +43,15 @@ export default function App() {
         <Route path="/chunks/add" element={<AddChunkPage />} />
         <Route path="/chunks/:id" element={<ChunkPage />} />
         <Route path="/analyze" element={<TextAnalysisPage />} />
+        <Route path="/adjectives" element={<DeclinablesListPage pos="adjective" />} />
+        <Route path="/adjectives/add" element={<AddDeclinablePage pos="adjective" />} />
+        <Route path="/adjectives/:id" element={<DeclinablePage pos="adjective" />} />
+        <Route path="/pronouns" element={<DeclinablesListPage pos="pronoun" />} />
+        <Route path="/pronouns/add" element={<AddDeclinablePage pos="pronoun" />} />
+        <Route path="/pronouns/:id" element={<DeclinablePage pos="pronoun" />} />
+        <Route path="/numerals" element={<DeclinablesListPage pos="numeral" />} />
+        <Route path="/numerals/add" element={<AddDeclinablePage pos="numeral" />} />
+        <Route path="/numerals/:id" element={<DeclinablePage pos="numeral" />} />
       </Routes>
     </BrowserRouter>
   )

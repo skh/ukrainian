@@ -39,7 +39,7 @@ const [editInfinitive, setEditInfinitive] = useState('')
       api.get<Verb[]>('/verbs'),
       api.get<AspectPair[]>('/aspect-pairs'),
       api.get<Derivation[]>('/derivations'),
-      api.get<VerbFormRead[]>(`/verb-forms/${verbId}`),
+      api.get<VerbFormRead[]>(`/verbs/${verbId}/forms`),
     ])
     const found = verbs.find(v => v.id === verbId) ?? null
     setVerb(found)
@@ -151,7 +151,7 @@ const [editInfinitive, setEditInfinitive] = useState('')
   }
 
 async function editForm(id: number, value: string) {
-    const updated = await api.put<VerbFormRead>(`/verb-forms/form/${id}`, { form: value })
+    const updated = await api.put<VerbFormRead>(`/verbs/${verbId}/forms/${id}`, { form: value })
     setForms(prev => prev.map(f => f.id === id ? { ...f, form: updated.form } : f))
   }
 
@@ -171,8 +171,7 @@ async function editForm(id: number, value: string) {
   async function confirmReplace() {
     if (replaceForms.length === 0) return
     try {
-      await api.delete(`/verb-forms/${verbId}`)
-      await api.post('/verb-forms', { verb_id: verbId, forms: replaceForms })
+      await api.put(`/verbs/${verbId}/forms`, replaceForms)
       setReplaceText('')
       setReplaceForms([])
       setReplaceError('')

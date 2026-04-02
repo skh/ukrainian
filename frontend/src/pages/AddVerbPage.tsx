@@ -57,7 +57,7 @@ export default function AddVerbPage() {
       const verb = await api.post<Verb>('/verbs', { infinitive, accented, aspect })
 
       if (forms.length > 0) {
-        await api.post('/verb-forms', { verb_id: verb.id, forms })
+        await api.put(`/verbs/${verb.id}/forms`, forms)
       }
 
       if (derivedFrom) {

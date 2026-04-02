@@ -31,6 +31,12 @@ class WordCreate(BaseModel):
     accented: str
 
 
+class DeclinableCreate(BaseModel):
+    accented: str
+    gender: Optional[Literal['m', 'f', 'n']] = None
+    number_type: Optional[Literal['sg', 'pl', 'both']] = None
+
+
 class LexemeUpdate(BaseModel):
     lemma: Optional[str] = None
     accented: Optional[str] = None

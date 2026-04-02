@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.entry import Lexeme, LexemeForm
+from app.routers._forms import replace_lexeme_forms
 from app.schemas.entry import LexemeCreate, LexemeFormCreate, LexemeRead, LexemeUpdate, WordCreate
 
 router = APIRouter()
@@ -88,12 +89,7 @@ def replace_forms(noun_id: int, forms: list[LexemeFormCreate], db: Session = Dep
     ).scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Noun not found")
-    db.execute(
-        LexemeForm.__table__.delete().where(LexemeForm.lexeme_id == noun_id)
-    )
-    for f in forms:
-        db.add(LexemeForm(lexeme_id=noun_id, tags=f.tags, form=f.form))
-    db.commit()
+    replace_lexeme_forms(noun_id, forms, db)
     db.refresh(entry)
     return entry
 
