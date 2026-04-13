@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { Entry, LexemeTranslation } from '../types'
 import { Nav } from '../components/Nav'
+import { DictionaryTabs } from '../components/DictionaryTabs'
 import { genderBg } from '../utils/nouns'
 import { stripAccent } from '../utils/forms'
 
@@ -37,6 +38,7 @@ export default function NounsListPage() {
   return (
     <div>
       <Nav />
+      <DictionaryTabs />
       <h1>Nouns</h1>
       <Link to="/nouns/add">Add noun</Link>
       <br /><br />

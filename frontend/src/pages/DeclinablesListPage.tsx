@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { Entry, LexemeTranslation } from '../types'
 import { Nav } from '../components/Nav'
+import { DictionaryTabs } from '../components/DictionaryTabs'
 import { genderBg } from '../utils/nouns'
 import { stripAccent } from '../utils/forms'
 
@@ -50,6 +51,7 @@ export default function DeclinablesListPage({ pos }: Props) {
   return (
     <div>
       <Nav />
+      <DictionaryTabs />
       <h1>{POS_TITLE[pos]}</h1>
       <Link to={`/${plural}/add`}>Add {pos}</Link>
       <br /><br />

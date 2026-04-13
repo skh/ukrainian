@@ -8,6 +8,7 @@ import { TagChip } from '../widgets/TagChip'
 import { TagPicker } from '../widgets/TagPicker'
 import { tagColor } from '../widgets/tagColor'
 import { Nav } from '../components/Nav'
+import { DictionaryTabs } from '../components/DictionaryTabs'
 
 export default function VerbListPage() {
   const navigate = useNavigate()
@@ -171,6 +172,7 @@ export default function VerbListPage() {
   return (
     <div>
       <Nav />
+      <DictionaryTabs />
       <h1>Verbs</h1>
       <Link to="/verbs/add">Add verb</Link>
       <br /><br />
