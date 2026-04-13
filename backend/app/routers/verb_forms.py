@@ -9,6 +9,7 @@ from app.models.entry import LexemeForm
 from app.schemas.verb_form import VerbFormRead, VerbFormUpdate, VerbFormCreate
 
 router = APIRouter(prefix="/api/verbs", tags=["verb-forms"])
+bulk_router = APIRouter(prefix="/api/verb-forms", tags=["verb-forms"])
 
 _TENSES  = {"present", "future", "past", "imperative"}
 _PERSONS = {"1", "2", "3"}
@@ -38,6 +39,12 @@ def _to_read(lf: LexemeForm) -> VerbFormRead:
         form=lf.form,
         **decoded,
     )
+
+
+@bulk_router.get("", response_model=list[VerbFormRead], operation_id="list_all_verb_forms")
+def list_all_verb_forms(db: Session = Depends(get_db)):
+    rows = db.execute(select(LexemeForm).where(LexemeForm.verb_id.is_not(None))).scalars().all()
+    return [_to_read(r) for r in rows]
 
 
 @router.get("/{verb_id}/forms", response_model=list[VerbFormRead])

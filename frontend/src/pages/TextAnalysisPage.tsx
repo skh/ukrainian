@@ -19,16 +19,13 @@ function Tooltip({ match, x, y }: { match: AnalysisTokenMatch; x: number; y: num
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginBottom: '0.3rem' }}>
         <strong style={{ fontSize: '1.1em' }}>{match.accented}</strong>
-        <span style={{
-          background: '#e5e7eb', padding: '0.1em 0.4em',
-          borderRadius: '3px', fontSize: '0.85em', color: '#555',
-        }}>{match.pos}</span>
+        <span className="badge text-dim" style={{ background: '#e5e7eb' }}>{match.pos}</span>
       </div>
       {match.translations.length > 0 && (
         <div>
           {match.translations.map((t, i) => (
             <span key={i} style={{ marginRight: '0.75rem' }}>
-              <span style={{ color: '#888' }}>{t.lang}:</span> {t.text}
+              <span className="text-muted">{t.lang}:</span> {t.text}
             </span>
           ))}
         </div>
@@ -115,10 +112,10 @@ export default function TextAnalysisPage() {
 
           {unknown.length > 0 && (
             <div style={{ marginTop: '1.5rem', maxWidth: '700px' }}>
-              <h3 style={{ marginBottom: '0.4rem', color: '#666' }}>Unknown words ({unknown.length})</h3>
+              <h3 className="text-secondary" style={{ marginBottom: '0.4rem' }}>Unknown words ({unknown.length})</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.6rem' }}>
                 {unknown.map(w => (
-                  <span key={w} style={{ color: '#888', fontSize: '0.9em' }}>{w}</span>
+                  <span key={w} className="text-muted" style={{ fontSize: '0.9em' }}>{w}</span>
                 ))}
               </div>
             </div>

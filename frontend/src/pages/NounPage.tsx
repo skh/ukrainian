@@ -106,19 +106,12 @@ export default function NounPage() {
       <h1>
         {noun.accented}
         {noun.gender && (
-          <span style={{
-            marginLeft: '0.5rem',
-            background: genderBg[noun.gender],
-            padding: '0.1em 0.4em',
-            borderRadius: '3px',
-            fontSize: '0.7em',
-            verticalAlign: 'middle',
-          }}>
+          <span className="badge" style={{ marginLeft: '0.5rem', background: genderBg[noun.gender], fontSize: '0.7em', verticalAlign: 'middle' }}>
             {noun.gender}
           </span>
         )}
         {noun.number_type && (
-          <span style={{ marginLeft: '0.5rem', color: '#888', fontSize: '0.6em', verticalAlign: 'middle' }}>
+          <span className="text-muted" style={{ marginLeft: '0.5rem', fontSize: '0.6em', verticalAlign: 'middle' }}>
             {noun.number_type}
           </span>
         )}
@@ -187,7 +180,7 @@ export default function NounPage() {
           </tbody>
         </table>
       ) : (
-        <p style={{ color: '#aaa' }}>No forms stored.</p>
+        <p className="text-faint">No forms stored.</p>
       )}
 
       <div style={{ marginTop: '1.5rem' }}>
@@ -206,17 +199,17 @@ export default function NounPage() {
         <button onClick={replaceForms} disabled={!pasteText.trim()}>
           {noun.forms && noun.forms.length > 0 ? 'Replace forms' : 'Add forms'}
         </button>
-        {parseError && <span style={{ color: 'red', marginLeft: '0.5em' }}>{parseError}</span>}
+        {parseError && <span className="text-danger" style={{ marginLeft: '0.5em' }}>{parseError}</span>}
       </div>
 
       <div style={{ marginTop: '2rem' }}>
-        {deleteError && <p style={{ color: 'red' }}>{deleteError}</p>}
+        {deleteError && <p className="text-danger">{deleteError}</p>}
         {!confirming ? (
-          <button onClick={() => setConfirming(true)} style={{ color: 'red' }}>Delete</button>
+          <button onClick={() => setConfirming(true)} className="text-danger">Delete</button>
         ) : (
           <>
             <span>Delete {noun.accented}? </span>
-            <button onClick={handleDelete} style={{ color: 'red' }}>Yes, delete</button>
+            <button onClick={handleDelete} className="text-danger">Yes, delete</button>
             {' '}
             <button onClick={() => setConfirming(false)}>Cancel</button>
           </>

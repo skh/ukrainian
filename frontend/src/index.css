@@ -1,5 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=PT+Sans&display=swap');
 
+:root {
+  --color-muted: #888;
+  --color-faint: #aaa;
+  --color-secondary: #666;
+  --color-dim: #555;
+  --color-danger: #c00;
+  --radius-badge: 3px;
+}
+
 body {
   font-family: 'PT Sans', sans-serif;
   font-size: 14pt;
@@ -69,6 +78,24 @@ a {
   text-decoration: none;
   color: inherit;
 }
+
+/* Inline badge/pill — add background inline, font-size if non-default */
+.badge {
+  display: inline-block;
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-badge);
+  font-size: 0.85em;
+}
+
+/* Text colour utilities */
+.text-muted     { color: var(--color-muted); }
+.text-faint     { color: var(--color-faint); }
+.text-secondary { color: var(--color-secondary); }
+.text-dim       { color: var(--color-dim); }
+.text-danger    { color: var(--color-danger); }
+
+/* Layout */
+.flex-row { display: flex; align-items: center; }
 
 .btn-primary, button {
   display: inline-block;

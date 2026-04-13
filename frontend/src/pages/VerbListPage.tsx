@@ -217,7 +217,7 @@ export default function VerbListPage() {
             >
               Verb {sortKey === 'lemma' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
             </th>
-            <th style={{ color: '#888', fontWeight: 'normal', fontSize: '0.85em' }}>DE</th>
+            <th className="text-muted" style={{ fontWeight: 'normal', fontSize: '0.85em' }}>DE</th>
             <th className="col-mobile-hide">Tags</th>
             {corpora.length > 0 && (
               <th className="col-mobile-hide">
@@ -250,7 +250,7 @@ export default function VerbListPage() {
                 })()}
               >
                 {p.ipf_verb && (
-                  <span style={{ background: aspectBg.ipf, padding: '0.1em 0.35em', borderRadius: '3px' }}>
+                  <span className="badge" style={{ background: aspectBg.ipf }}>
                     {p.ipf_verb.accented}
                   </span>
                 )}
@@ -258,7 +258,7 @@ export default function VerbListPage() {
                   <span style={{ color: '#bbb', margin: '0 0.15em' }}>(</span>
                 )}
                 {p.pf_verb && (
-                  <span style={{ background: aspectBg.pf, padding: '0.1em 0.35em', borderRadius: '3px' }}>
+                  <span className="badge" style={{ background: aspectBg.pf }}>
                     {p.pf_verb.accented}
                   </span>
                 )}
@@ -266,7 +266,7 @@ export default function VerbListPage() {
                   <span style={{ color: '#bbb' }}>)</span>
                 )}
               </td>
-              <td style={{ color: '#555', fontSize: '0.88em', whiteSpace: 'nowrap' }}>
+              <td className="text-dim" style={{ fontSize: '0.88em', whiteSpace: 'nowrap' }}>
                 {allPairTranslations.filter(t => t.lexeme_id === p.lexeme_id && t.lang === 'de').map(t => t.text).join(', ')}
               </td>
               <td className="col-mobile-hide">
@@ -356,7 +356,7 @@ export default function VerbListPage() {
                         </span>
                       )}
                       {p.pf_verb && (
-                        <span style={{ background: aspectBg.pf, padding: '0.1em 0.35em', borderRadius: '3px' }}>
+                        <span className="badge" style={{ background: aspectBg.pf }}>
                           {p.pf_verb.accented}
                         </span>
                       )}

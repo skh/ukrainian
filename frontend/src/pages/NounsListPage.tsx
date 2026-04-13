@@ -47,7 +47,7 @@ export default function NounsListPage() {
       />
       <br /><br />
       {filtered.length === 0 ? (
-        <p style={{ color: '#aaa' }}>No nouns yet.</p>
+        <p className="text-faint">No nouns yet.</p>
       ) : (
         <table>
           <thead>
@@ -68,20 +68,15 @@ export default function NounsListPage() {
                 </td>
                 <td>
                   {n.gender ? (
-                    <span style={{
-                      background: genderBg[n.gender],
-                      padding: '0.1em 0.4em',
-                      borderRadius: '3px',
-                      fontSize: '0.85em',
-                    }}>
+                    <span className="badge" style={{ background: genderBg[n.gender] }}>
                       {n.gender}
                     </span>
                   ) : (
-                    <span style={{ color: '#aaa', fontSize: '0.85em' }}>—</span>
+                    <span className="text-faint" style={{ fontSize: '0.85em' }}>—</span>
                   )}
                 </td>
-                <td style={{ fontSize: '0.85em', color: '#666' }}>{n.number_type ?? ''}</td>
-                <td style={{ fontSize: '0.85em', color: '#555' }}>{deByLexeme.get(n.id) ?? ''}</td>
+                <td className="text-secondary" style={{ fontSize: '0.85em' }}>{n.number_type ?? ''}</td>
+                <td className="text-dim" style={{ fontSize: '0.85em' }}>{deByLexeme.get(n.id) ?? ''}</td>
               </tr>
             ))}
           </tbody>

@@ -86,11 +86,11 @@ function ParadigmHint({ verb, forms, translations, partnerVerb, partnerForms }: 
           <div>
             {displayAspect === 'pf' && triangle}
             <strong>{displayVerb.accented}</strong>
-            {' '}<span style={{ color: '#888' }}>({displayVerb.aspect})</span>
+            {' '}<span className="text-muted">({displayVerb.aspect})</span>
             {displayAspect === 'ipf' && triangle}
           </div>
           {Object.entries(byLang).map(([lang, texts]) => (
-            <div key={lang} style={{ color: '#555', marginTop: '0.2em' }}>
+            <div key={lang} className="text-dim" style={{ marginTop: '0.2em' }}>
               {lang}: {texts.join(', ')}
             </div>
           ))}
@@ -122,7 +122,7 @@ function renderPrompt(q: Question) {
       <div style={{ marginBottom: '0.75em' }}>
         {q.display.map((line: PromptLine, i: number) =>
           line.small ? (
-            <p key={i} style={{ fontSize: '0.85em', color: '#666', margin: '0.15em 0 0' }}>
+            <p key={i} className="text-secondary" style={{ fontSize: '0.85em', margin: '0.15em 0 0' }}>
               {line.text}
             </p>
           ) : (
@@ -177,11 +177,11 @@ function VerbPairPopup({ pairId, verbs, pairs, formsByVerbId, pairTranslations }
       <div>
         {displayAspect === 'pf' && triangle}
         <strong>{displayVerb.accented}</strong>
-        {' '}<span style={{ color: '#888' }}>({displayVerb.aspect})</span>
+        {' '}<span className="text-muted">({displayVerb.aspect})</span>
         {displayAspect === 'ipf' && triangle}
       </div>
       {Object.entries(byLang).map(([lang, texts]) => (
-        <div key={lang} style={{ color: '#555', marginTop: '0.2em' }}>{lang}: {texts.join(', ')}</div>
+        <div key={lang} className="text-dim" style={{ marginTop: '0.2em' }}>{lang}: {texts.join(', ')}</div>
       ))}
       <div style={{ marginTop: '0.5rem' }}><FormsTable forms={displayForms} /></div>
     </div>
@@ -219,12 +219,12 @@ function ChunkLinksHint({ links, verbs, pairs, formsByVerbId, pairTranslations }
     const labels: Record<string, string> = { nom: 'Н', gen: 'Р', dat: 'Д', acc: 'З', ins: 'О', loc: 'М', voc: 'К' }
     return (
       <div style={{ background: '#f8f8f8', border: '1px solid #ccc', borderRadius: '4px', padding: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', fontSize: '70%', maxWidth: '90vw' }}>
-        <div><strong>{entry.accented}</strong>{entry.gender && <span style={{ color: '#888', marginLeft: '0.5em' }}>({entry.gender})</span>}</div>
+        <div><strong>{entry.accented}</strong>{entry.gender && <span className="text-muted" style={{ marginLeft: '0.5em' }}>({entry.gender})</span>}</div>
         <table style={{ marginTop: '0.5rem', borderCollapse: 'collapse' }}>
           <thead><tr>
             <th></th>
-            {hasSg && <th style={{ paddingLeft: '0.5em', fontWeight: 'normal', color: '#888' }}>одн.</th>}
-            {hasPl && <th style={{ paddingLeft: '0.5em', fontWeight: 'normal', color: '#888' }}>мн.</th>}
+            {hasSg && <th className="text-muted" style={{ paddingLeft: '0.5em', fontWeight: 'normal' }}>одн.</th>}
+            {hasPl && <th className="text-muted" style={{ paddingLeft: '0.5em', fontWeight: 'normal' }}>мн.</th>}
           </tr></thead>
           <tbody>
             {cases.map(c => {
@@ -233,7 +233,7 @@ function ChunkLinksHint({ links, verbs, pairs, formsByVerbId, pairTranslations }
               if (!sg && !pl) return null
               return (
                 <tr key={c}>
-                  <td style={{ color: '#888', paddingRight: '0.5em' }}>{labels[c]}</td>
+                  <td className="text-muted" style={{ paddingRight: '0.5em' }}>{labels[c]}</td>
                   {hasSg && <td style={{ paddingLeft: '0.5em' }}>{sg ?? '—'}</td>}
                   {hasPl && <td style={{ paddingLeft: '0.5em' }}>{pl ?? '—'}</td>}
                 </tr>
@@ -253,7 +253,7 @@ function ChunkLinksHint({ links, verbs, pairs, formsByVerbId, pairTranslations }
             ? <VerbPairPopup pairId={openLink.pair_id} verbs={verbs} pairs={pairs} formsByVerbId={formsByVerbId} pairTranslations={pairTranslations} />
             : openLink.entry_id && nounCache.has(openLink.entry_id)
             ? renderNounPopup(nounCache.get(openLink.entry_id)!)
-            : <div style={{ fontSize: '0.8em', color: '#888', background: 'white', border: '1px solid #ddd', borderRadius: '4px', padding: '0.5rem' }}>Loading…</div>
+            : <div className="text-muted" style={{ fontSize: '0.8em', background: 'white', border: '1px solid #ddd', borderRadius: '4px', padding: '0.5rem' }}>Loading…</div>
           }
         </div>
       )}
@@ -584,10 +584,10 @@ export default function DrillPage() {
       return acc
     }, {})
     return (
-      <div style={{ color: '#666', fontSize: '0.9em', margin: '0.5em 0 1em', border: '1px solid #ccc', borderRadius: '3px', padding: '0.3em 0.6em' }}>
+      <div className="text-secondary" style={{ fontSize: '0.9em', margin: '0.5em 0 1em', border: '1px solid #ccc', borderRadius: '3px', padding: '0.3em 0.6em' }}>
         {Object.entries(byLang).map(([lang, texts]) => (
           <span key={lang} style={{ marginRight: '1em' }}>
-            <span style={{ color: '#aaa' }}>{lang}</span>{' '}{texts.join(', ')}
+            <span className="text-faint">{lang}</span>{' '}{texts.join(', ')}
           </span>
         ))}
       </div>
@@ -772,12 +772,12 @@ export default function DrillPage() {
     return (
       <div>
         <h1>Drills</h1>
-        <p style={{ color: '#666' }}>Question {history.length + 1}</p>
+        <p className="text-secondary">Question {history.length + 1}</p>
         {question && (
           <>
             {isChunk ? (
               <>
-                <p style={{ fontSize: '0.85em', color: '#666', margin: '1.5em 0 0.15em' }}>
+                <p className="text-secondary" style={{ fontSize: '0.85em', margin: '1.5em 0 0.15em' }}>
                   [{question.promptLang}] → [{question.answerLang}]
                 </p>
                 <p style={{ margin: '0.2em 0 1.5em' }}><strong>{question.prompt}</strong></p>
@@ -842,15 +842,15 @@ export default function DrillPage() {
     return (
       <div style={{ background: vq ? aspectBg[vq.aspect] : undefined }}>
         <h1>Drills</h1>
-        <p style={{ color: '#666' }}>Question {history.length + 1}</p>
+        <p className="text-secondary">Question {history.length + 1}</p>
         {question && (
           isChunk ? (
             <>
-              <p style={{ fontSize: '0.85em', color: '#666', margin: '0.15em 0 0' }}>[{question.promptLang}]</p>
+              <p className="text-secondary" style={{ fontSize: '0.85em', margin: '0.15em 0 0' }}>[{question.promptLang}]</p>
               <p style={{ margin: '0.2em 0' }}><strong>{question.prompt}</strong></p>
               <p>Answer: <strong>{question.answer}</strong></p>
               {question.notes && (
-                <p style={{ fontSize: '0.85em', color: '#666', margin: '0.15em 0 0' }}>Note: {question.notes}</p>
+                <p className="text-secondary" style={{ fontSize: '0.85em', margin: '0.15em 0 0' }}>Note: {question.notes}</p>
               )}
             </>
           ) : vq && (
@@ -858,7 +858,7 @@ export default function DrillPage() {
               {renderPrompt(vq)}
               <p>Answer: <strong>{vq.correctForm}</strong></p>
               {vq.targetFormLabel && (
-                <p style={{ fontSize: '0.85em', color: '#666', margin: '0.15em 0 0' }}>{vq.targetFormLabel}</p>
+                <p className="text-secondary" style={{ fontSize: '0.85em', margin: '0.15em 0 0' }}>{vq.targetFormLabel}</p>
               )}
               {renderTranslations(verbToPairId.get(vq.verbId))}
             </>
@@ -885,7 +885,7 @@ export default function DrillPage() {
           Didn't know
         </button>
         <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
-          <span style={{ fontSize: '0.8em', color: '#888' }}>Tags:</span>
+          <span className="text-muted" style={{ fontSize: '0.8em' }}>Tags:</span>
           {question && isChunkQ(question)
             ? allChunks.find(c => c.id === question.chunkId)?.tags.map(t => <TagChip key={t.id} tag={t} />)
             : vq && pairTags.filter(pt => pt.pair_id === verbToPairId.get(vq.verbId)).map(pt => allTags.find(t => t.id === pt.tag_id)).filter(Boolean).map(t => <TagChip key={t!.id} tag={t!} />)
@@ -918,7 +918,7 @@ export default function DrillPage() {
     return (
       <div style={{ background: vq ? aspectBg[vq.aspect] : undefined }}>
         <h1>Drills</h1>
-        <p style={{ color: '#666' }}>Question {history.length}</p>
+        <p className="text-secondary">Question {history.length}</p>
         <p><strong>{last.prompt}</strong></p>
         <p>
           Your answer: <strong>{last.correct ? last.correctAnswer : (last.userAnswer || '(empty)')}</strong>{' '}

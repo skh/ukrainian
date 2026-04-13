@@ -181,11 +181,11 @@ export default function ChunkPage() {
 
       <section style={{ marginBottom: '1.5rem' }}>
         <h2 style={{ marginBottom: '0.5rem' }}>Translations</h2>
-        {chunk.translations.length === 0 && <p style={{ color: '#aaa' }}>No translations yet.</p>}
+        {chunk.translations.length === 0 && <p className="text-faint">No translations yet.</p>}
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem' }}>
           {chunk.translations.map(t => (
             <li key={t.id} style={{ marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ minWidth: '2rem', color: '#888', fontSize: '0.85em' }}>{t.lang}:</span>
+              <span className="text-muted" style={{ minWidth: '2rem', fontSize: '0.85em' }}>{t.lang}:</span>
               {editTransId === t.id ? (
                 <>
                   <input
@@ -202,7 +202,7 @@ export default function ChunkPage() {
                 <>
                   <span>{t.text}</span>
                   <button onClick={() => { setEditTransId(t.id); setEditTransText(t.text) }} style={{ fontSize: '0.75em' }}>edit</button>
-                  <button onClick={() => deleteTranslation(t.id)} style={{ fontSize: '0.75em', color: '#c00' }}>×</button>
+                  <button onClick={() => deleteTranslation(t.id)} className="text-danger" style={{ fontSize: '0.75em' }}>×</button>
                 </>
               )}
             </li>
@@ -225,7 +225,7 @@ export default function ChunkPage() {
 
       <section style={{ marginBottom: '1.5rem' }}>
         <h2 style={{ marginBottom: '0.5rem' }}>Word links</h2>
-        {chunk.links.length === 0 && <p style={{ color: '#aaa' }}>No links.</p>}
+        {chunk.links.length === 0 && <p className="text-faint">No links.</p>}
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem' }}>
           {chunk.links.map(l => (
             <li key={l.id} style={{ marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -240,14 +240,14 @@ export default function ChunkPage() {
               ) : (
                 <span style={{ fontStyle: 'italic' }}>{l.lexeme_form ?? '?'}</span>
               )}
-              <span style={{ color: '#888', fontSize: '0.85em' }}>({l.lexeme_pos})</span>
-              <button onClick={() => removeLink(l.id)} style={{ fontSize: '0.75em', color: '#c00' }}>×</button>
+              <span className="text-muted" style={{ fontSize: '0.85em' }}>({l.lexeme_pos})</span>
+              <button onClick={() => removeLink(l.id)} className="text-danger" style={{ fontSize: '0.75em' }}>×</button>
             </li>
           ))}
         </ul>
         <button onClick={suggestLinks}>Suggest links from text</button>
         {showSuggest && suggestions.length === 0 && (
-          <span style={{ marginLeft: '0.5em', color: '#aaa' }}>No new suggestions.</span>
+          <span className="text-faint" style={{ marginLeft: '0.5em' }}>No new suggestions.</span>
         )}
         {suggestions.length > 0 && (
           <ul style={{ listStyle: 'none', padding: 0, marginTop: '0.5rem' }}>
@@ -265,7 +265,7 @@ export default function ChunkPage() {
       <section style={{ marginBottom: '1.5rem' }}>
         <h2 style={{ marginBottom: '0.5rem' }}>Tags</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
-          {chunk.tags.length === 0 && <span style={{ color: '#aaa' }}>No tags.</span>}
+          {chunk.tags.length === 0 && <span className="text-faint">No tags.</span>}
           {chunk.tags.map(t => (
             <TagChip key={t.id} tag={t} onRemove={() => removeTag(t.id)} />
           ))}
@@ -292,13 +292,13 @@ export default function ChunkPage() {
       </section>
 
       <section style={{ marginTop: '2rem' }}>
-        {deleteError && <p style={{ color: 'red' }}>{deleteError}</p>}
+        {deleteError && <p className="text-danger">{deleteError}</p>}
         {!confirming ? (
-          <button onClick={() => setConfirming(true)} style={{ color: 'red' }}>Delete chunk</button>
+          <button onClick={() => setConfirming(true)} className="text-danger">Delete chunk</button>
         ) : (
           <>
             <span>Delete this chunk? </span>
-            <button onClick={handleDelete} style={{ color: 'red' }}>Yes, delete</button>
+            <button onClick={handleDelete} className="text-danger">Yes, delete</button>
             {' '}
             <button onClick={() => setConfirming(false)}>Cancel</button>
           </>

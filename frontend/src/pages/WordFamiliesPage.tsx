@@ -23,21 +23,21 @@ function MemberChips({ members }: { members: Lexeme[] }) {
           <Link key={m.id} to={`/pairs/${m.pair_id}`} style={{ textDecoration: 'none' }}>
             <span style={{ display: 'inline-flex', gap: '0.15em', fontSize: '0.9em' }}>
               {m.pair.ipf_verb && (
-                <span style={{ background: aspectBg.ipf, padding: '0.1em 0.35em', borderRadius: '3px', color: 'inherit' }}>
+                <span className="badge" style={{ background: aspectBg.ipf }}>
                   {m.pair.ipf_verb.accented}
                 </span>
               )}
               {m.pair.pf_verb && (
-                <span style={{ background: aspectBg.pf, padding: '0.1em 0.35em', borderRadius: '3px', color: 'inherit' }}>
+                <span className="badge" style={{ background: aspectBg.pf }}>
                   {m.pair.pf_verb.accented}
                 </span>
               )}
             </span>
           </Link>
         ) : (
-          <span key={m.id} style={{ background: posBg[m.pos] ?? '#eee', padding: '0.1em 0.35em', borderRadius: '3px', fontSize: '0.9em' }}>
+          <span key={m.id} className="badge" style={{ background: posBg[m.pos] ?? '#eee', fontSize: '0.9em' }}>
             {m.accented}
-            <span style={{ color: '#888', fontSize: '0.75em', marginLeft: '0.3em' }}>{m.pos}</span>
+            <span className="text-muted" style={{ fontSize: '0.75em', marginLeft: '0.3em' }}>{m.pos}</span>
           </span>
         )
       ))}
@@ -76,7 +76,7 @@ export default function WordFamiliesPage() {
           </tbody>
         </table>
       )}
-      {families.length === 0 && <p style={{ color: '#888', marginTop: '1rem' }}>No word families yet.</p>}
+      {families.length === 0 && <p className="text-muted" style={{ marginTop: '1rem' }}>No word families yet.</p>}
     </div>
   )
 }

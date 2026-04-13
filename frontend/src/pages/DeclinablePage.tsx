@@ -109,11 +109,7 @@ export default function DeclinablePage({ pos }: Props) {
       <Nav />
       <h1>
         {item.accented}
-        <span style={{
-          marginLeft: '0.5rem', background: '#e5e7eb',
-          padding: '0.1em 0.4em', borderRadius: '3px',
-          fontSize: '0.65em', verticalAlign: 'middle', color: '#555',
-        }}>
+        <span className="badge text-dim" style={{ marginLeft: '0.5rem', background: '#e5e7eb', fontSize: '0.65em', verticalAlign: 'middle' }}>
           {POS_LABEL[pos]}
         </span>
       </h1>
@@ -187,7 +183,7 @@ export default function DeclinablePage({ pos }: Props) {
           </tbody>
         </table>
       ) : (
-        <p style={{ color: '#aaa' }}>No forms stored.</p>
+        <p className="text-faint">No forms stored.</p>
       )}
 
       <div style={{ marginTop: '1.5rem' }}>
@@ -206,17 +202,17 @@ export default function DeclinablePage({ pos }: Props) {
         <button onClick={replaceForms} disabled={!pasteText.trim()}>
           {item.forms && item.forms.length > 0 ? 'Replace forms' : 'Add forms'}
         </button>
-        {parseError && <span style={{ color: 'red', marginLeft: '0.5em' }}>{parseError}</span>}
+        {parseError && <span className="text-danger" style={{ marginLeft: '0.5em' }}>{parseError}</span>}
       </div>
 
       <div style={{ marginTop: '2rem' }}>
-        {deleteError && <p style={{ color: 'red' }}>{deleteError}</p>}
+        {deleteError && <p className="text-danger">{deleteError}</p>}
         {!confirming ? (
-          <button onClick={() => setConfirming(true)} style={{ color: 'red' }}>Delete</button>
+          <button onClick={() => setConfirming(true)} className="text-danger">Delete</button>
         ) : (
           <>
             <span>Delete {item.accented}? </span>
-            <button onClick={handleDelete} style={{ color: 'red' }}>Yes, delete</button>
+            <button onClick={handleDelete} className="text-danger">Yes, delete</button>
             {' '}
             <button onClick={() => setConfirming(false)}>Cancel</button>
           </>

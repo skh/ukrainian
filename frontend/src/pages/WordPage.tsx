@@ -73,7 +73,7 @@ export default function WordPage() {
     <div>
       <Nav />
       <h1>{word.accented}</h1>
-      <p style={{ color: '#888' }}>{word.pos}</p>
+      <p className="text-muted">{word.pos}</p>
 
       {langs.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>
@@ -106,7 +106,7 @@ export default function WordPage() {
 
       <div style={{ marginTop: '2rem' }}>
         {!confirming
-          ? <button style={{ color: '#c00' }} onClick={() => setConfirming(true)}>Delete</button>
+          ? <button className="text-danger" onClick={() => setConfirming(true)}>Delete</button>
           : <>
               <span>Delete {word.accented}? </span>
               <button style={{ background: '#c00', color: 'white' }} onClick={handleDelete}>Yes, delete</button>

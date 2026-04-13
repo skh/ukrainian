@@ -28,7 +28,7 @@ export function TranslationRow({ lang, items, onAdd, onUpdate, onDelete }: {
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem 0.4rem', fontSize: '0.85em', marginBottom: '0.15rem' }}>
-      <span style={{ color: '#888', minWidth: '1.5rem' }}>{lang}</span>
+      <span className="text-muted" style={{ minWidth: '1.5rem' }}>{lang}</span>
       {items.map(item => (
         editingId === item.id ? (
           <span key={item.id} style={{ display: 'inline-flex', gap: '0.25rem' }}>
@@ -48,7 +48,7 @@ export function TranslationRow({ lang, items, onAdd, onUpdate, onDelete }: {
             <button onClick={() => { setEditingId(item.id); setEditText(item.text) }}
               style={{ fontSize: '0.75em', padding: '0 0.3em' }}>edit</button>
             <button onClick={() => onDelete(item.id)}
-              style={{ fontSize: '0.75em', padding: '0 0.3em', color: '#c00' }}>×</button>
+              className="text-danger" style={{ fontSize: '0.75em', padding: '0 0.3em' }}>×</button>
           </span>
         )
       ))}
@@ -66,7 +66,7 @@ export function TranslationRow({ lang, items, onAdd, onUpdate, onDelete }: {
         </span>
       ) : (
         <button onClick={() => setAdding(true)}
-          style={{ fontSize: '0.75em', padding: '0 0.3em', color: '#666' }}>+</button>
+          className="text-secondary" style={{ fontSize: '0.75em', padding: '0 0.3em' }}>+</button>
       )}
     </div>
   )

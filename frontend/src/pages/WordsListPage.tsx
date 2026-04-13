@@ -96,7 +96,7 @@ export default function WordsListPage() {
       />
       <br /><br />
       {filtered.length === 0 ? (
-        <p style={{ color: '#aaa' }}>No entries yet.</p>
+        <p className="text-faint">No entries yet.</p>
       ) : (
         <table>
           <thead>
@@ -115,36 +115,26 @@ export default function WordsListPage() {
                 <td><Link to={entryPath(e)}>{entryLabel(e)}</Link></td>
                 <td>
                   {e.pos !== 'pair' && (
-                    <span style={{
-                      background: posBg[e.pos] ?? '#eee',
-                      padding: '0.1em 0.45em',
-                      borderRadius: '3px',
-                      fontSize: '0.82em',
-                    }}>
+                    <span className="badge" style={{ background: posBg[e.pos] ?? '#eee' }}>
                       {e.pos}
                     </span>
                   )}
                 </td>
-                <td style={{ fontSize: '0.85em', color: '#555' }}>
+                <td className="text-dim" style={{ fontSize: '0.85em' }}>
                   {e.pos === 'noun' && (
                     <>
                       {e.gender && (
-                        <span style={{
-                          background: genderBg[e.gender],
-                          padding: '0.1em 0.35em',
-                          borderRadius: '3px',
-                          marginRight: '0.4em',
-                        }}>
+                        <span className="badge" style={{ background: genderBg[e.gender], marginRight: '0.4em' }}>
                           {e.gender}
                         </span>
                       )}
                       {e.number_type && e.number_type !== 'both' && (
-                        <span style={{ color: '#888' }}>{e.number_type}</span>
+                        <span className="text-muted">{e.number_type}</span>
                       )}
                     </>
                   )}
                 </td>
-                <td style={{ fontSize: '0.85em', color: '#555' }}>{deByLexeme.get(e.id) ?? ''}</td>
+                <td className="text-dim" style={{ fontSize: '0.85em' }}>{deByLexeme.get(e.id) ?? ''}</td>
               </tr>
             ))}
           </tbody>

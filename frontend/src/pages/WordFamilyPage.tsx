@@ -23,7 +23,7 @@ function MemberChip({ lexeme, onRemove }: { lexeme: Lexeme; onRemove: () => void
   const removeBtn = (
     <button
       onClick={e => { e.preventDefault(); e.stopPropagation(); onRemove() }}
-      style={{ fontSize: '0.7em', padding: '0 0.25em', marginLeft: '0.25em', color: '#c00', lineHeight: 1 }}
+      className="text-danger" style={{ fontSize: '0.7em', padding: '0 0.25em', marginLeft: '0.25em', lineHeight: 1 }}
     >×</button>
   )
 
@@ -33,12 +33,12 @@ function MemberChip({ lexeme, onRemove }: { lexeme: Lexeme; onRemove: () => void
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15em' }}>
         <Link to={`/pairs/${lexeme.pair_id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'inline-flex', gap: '0.15em' }}>
           {pair.ipf_verb && (
-            <span style={{ background: aspectBg.ipf, padding: '0.15em 0.4em', borderRadius: '4px' }}>
+            <span className="badge" style={{ background: aspectBg.ipf }}>
               {pair.ipf_verb.accented}
             </span>
           )}
           {pair.pf_verb && (
-            <span style={{ background: aspectBg.pf, padding: '0.15em 0.4em', borderRadius: '4px' }}>
+            <span className="badge" style={{ background: aspectBg.pf }}>
               {pair.pf_verb.accented}
             </span>
           )}
@@ -50,12 +50,12 @@ function MemberChip({ lexeme, onRemove }: { lexeme: Lexeme; onRemove: () => void
 
   const gorohHref = gorohLexemeUrl(lexeme.accented, lexeme.pos as Pos)
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', background: posBg[lexeme.pos] ?? '#eee', padding: '0.15em 0.4em', borderRadius: '4px' }}>
+    <span className="badge" style={{ display: 'inline-flex', alignItems: 'center', background: posBg[lexeme.pos] ?? '#eee' }}>
       {gorohHref
         ? <a href={gorohHref} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>{lexeme.accented}</a>
         : <span>{lexeme.accented}</span>
       }
-      <span style={{ color: '#888', fontSize: '0.75em', marginLeft: '0.3em' }}>{lexeme.pos}</span>
+      <span className="text-muted" style={{ fontSize: '0.75em', marginLeft: '0.3em' }}>{lexeme.pos}</span>
       {removeBtn}
     </span>
   )
@@ -146,7 +146,7 @@ export default function WordFamilyPage() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', margin: '1.5rem 0 1rem' }}>
         {family.members.length === 0
-          ? <span style={{ color: '#aaa' }}>No members yet.</span>
+          ? <span className="text-faint">No members yet.</span>
           : family.members.map(m => (
               <MemberChip key={m.id} lexeme={m} onRemove={() => removeMember(m.id)} />
             ))
@@ -191,10 +191,10 @@ export default function WordFamilyPage() {
       ))}
       {' '}<button onClick={addLexeme} disabled={!newLexemeForm.trim()}>Add</button>
 
-      {message && <p style={{ color: '#c00' }}>{message}</p>}
+      {message && <p className="text-danger">{message}</p>}
 
       <div style={{ marginTop: '3rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-        <button style={{ color: '#c00' }} onClick={deleteFamily}>Delete family</button>
+        <button className="text-danger" onClick={deleteFamily}>Delete family</button>
       </div>
     </div>
   )

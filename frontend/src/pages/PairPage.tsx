@@ -33,8 +33,8 @@ export default function PairPage() {
     api.get<AspectPair>(`/aspect-pairs/${pairId}`).then(async p => {
       setPair(p)
       const [ipf, pf, ts, cks, corp, freqs, ls, trs] = await Promise.all([
-        p.ipf_verb_id != null ? api.get<VerbFormData[]>(`/verb-forms/${p.ipf_verb_id}`) : Promise.resolve([]),
-        p.pf_verb_id != null ? api.get<VerbFormData[]>(`/verb-forms/${p.pf_verb_id}`) : Promise.resolve([]),
+        p.ipf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.ipf_verb_id}/forms`) : Promise.resolve([]),
+        p.pf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.pf_verb_id}/forms`) : Promise.resolve([]),
         api.get<Tag[]>(`/pairs/${pairId}/tags`),
         api.get<Chunk[]>(`/pairs/${pairId}/chunks`),
         api.get<string[]>('/corpora'),
@@ -112,7 +112,7 @@ export default function PairPage() {
             </a>
           )}
           {pair.ipf_verb && pair.pf_verb && (
-            <span style={{ color: '#aaa', margin: '0 0.2em' }}>/</span>
+            <span className="text-faint" style={{ margin: '0 0.2em' }}>/</span>
           )}
           {pair.pf_verb && (
             <a href={gorohUrl(pair.pf_verb.infinitive)} target="_blank" rel="noreferrer"
@@ -225,7 +225,7 @@ export default function PairPage() {
               })}
             </tbody>
           </table></div>
-          {fetchError && <p style={{ color: '#c00', marginTop: '0.4rem' }}>{fetchError}</p>}
+          {fetchError && <p className="text-danger" style={{ marginTop: '0.4rem' }}>{fetchError}</p>}
         </div>
       )}
 
@@ -236,15 +236,15 @@ export default function PairPage() {
             {chunks.map(c => (
               <li key={c.id} style={{ marginBottom: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75em', color: '#888' }}>[{c.lang}]</span>
+                  <span className="text-muted" style={{ fontSize: '0.75em' }}>[{c.lang}]</span>
                   <span>{c.text}</span>
                   <Link to={`/chunks/${c.id}`} style={{ fontSize: '0.75em' }}>edit</Link>
                 </div>
                 {c.translations.length > 0 && (
-                  <div style={{ marginLeft: '1rem', marginTop: '0.15rem', fontSize: '0.85em', color: '#555' }}>
+                  <div className="text-dim" style={{ marginLeft: '1rem', marginTop: '0.15rem', fontSize: '0.85em' }}>
                     {c.translations.map(t => (
                       <span key={t.id} style={{ marginRight: '0.75rem' }}>
-                        <span style={{ color: '#888' }}>{t.lang}:</span> {t.text}
+                        <span className="text-muted">{t.lang}:</span> {t.text}
                       </span>
                     ))}
                   </div>
@@ -265,12 +265,12 @@ export default function PairPage() {
                 {f.members.map(m => (
                   m.pos === 'pair' && m.pair ? (
                     <span key={m.id} style={{ display: 'inline-flex', gap: '0.15em', fontSize: '0.9em' }}>
-                      {m.pair.ipf_verb && <span style={{ background: aspectBg.ipf, padding: '0.1em 0.35em', borderRadius: '3px' }}>{m.pair.ipf_verb.accented}</span>}
-                      {m.pair.pf_verb && <span style={{ background: aspectBg.pf, padding: '0.1em 0.35em', borderRadius: '3px' }}>{m.pair.pf_verb.accented}</span>}
+                      {m.pair.ipf_verb && <span className="badge" style={{ background: aspectBg.ipf }}>{m.pair.ipf_verb.accented}</span>}
+                      {m.pair.pf_verb && <span className="badge" style={{ background: aspectBg.pf }}>{m.pair.pf_verb.accented}</span>}
                     </span>
                   ) : (
-                    <span key={m.id} style={{ background: '#eee', padding: '0.1em 0.35em', borderRadius: '3px', fontSize: '0.9em' }}>
-                      {m.accented} <span style={{ color: '#888', fontSize: '0.75em' }}>{m.pos}</span>
+                    <span key={m.id} className="badge" style={{ background: '#eee', fontSize: '0.9em' }}>
+                      {m.accented} <span className="text-muted" style={{ fontSize: '0.75em' }}>{m.pos}</span>
                     </span>
                   )
                 ))}
