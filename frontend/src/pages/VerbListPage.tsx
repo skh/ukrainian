@@ -209,7 +209,7 @@ export default function VerbListPage() {
       )}
       <br />
 
-      <div style={{ overflowX: 'auto' }}><table>
+      <div style={{ overflowX: 'auto' }}><table style={{ width: '100%' }}>
         <thead>
           <tr>
             <th className="col-mobile-hide"></th>
@@ -268,7 +268,7 @@ export default function VerbListPage() {
                   <span style={{ color: '#bbb' }}>)</span>
                 )}
               </td>
-              <td className="text-dim" style={{ fontSize: '0.88em', whiteSpace: 'nowrap' }}>
+              <td className="text-dim" style={{ fontSize: '0.88em' }}>
                 {allPairTranslations.filter(t => t.lexeme_id === p.lexeme_id && t.lang === 'de').map(t => t.text).join(', ')}
               </td>
               <td className="col-mobile-hide">
