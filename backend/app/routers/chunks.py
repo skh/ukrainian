@@ -28,6 +28,27 @@ router = APIRouter(tags=["chunks"])
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 
+def _lexeme_for_verb(verb_id: int, db: Session) -> Lexeme | None:
+    """Return the pair Lexeme that owns verb_id, or None if the verb is unpaired."""
+    pair = db.execute(
+        select(AspectPair).where(
+            (AspectPair.ipf_verb_id == verb_id) | (AspectPair.pf_verb_id == verb_id)
+        )
+    ).scalars().first()
+    if not pair:
+        return None
+    return db.execute(select(Lexeme).where(Lexeme.pair_id == pair.id)).scalar_one_or_none()
+
+
+def _emit(lex: Lexeme | None, matched_form: str,
+          seen: set[int], results: list[SuggestedLink]) -> None:
+    """Append a SuggestedLink if lex is valid and not already seen."""
+    if lex and lex.id not in seen:
+        seen.add(lex.id)
+        results.append(SuggestedLink(lexeme_id=lex.id, lexeme_pos=lex.pos,
+                                     lexeme_form=lex.accented, matched_form=matched_form))
+
+
 def _chunk_query():
     """Base query that eagerly loads translations, links (with lexeme → pair → verbs), and tags."""
     link_chain = selectinload(Chunk.links).selectinload(ChunkLink.lexeme)
@@ -97,64 +118,30 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
     if not tokens:
         return []
 
-    seen_lexeme_ids: set[int] = set()
+    seen: set[int] = set()
     results: list[SuggestedLink] = []
 
-    # verb inflected forms
+    # verb inflected forms → pair lexeme
     for vf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
-        if strip_accent(vf.form).lower() not in tokens:
-            continue
-        pair = db.execute(
-            select(AspectPair).where(
-                (AspectPair.ipf_verb_id == vf.verb_id) | (AspectPair.pf_verb_id == vf.verb_id)
-            )
-        ).scalars().first()
-        if not pair:
-            continue
-        lex = db.execute(select(Lexeme).where(Lexeme.pair_id == pair.id)).scalar_one_or_none()
-        if lex and lex.id not in seen_lexeme_ids:
-            seen_lexeme_ids.add(lex.id)
-            results.append(SuggestedLink(lexeme_id=lex.id, lexeme_pos=lex.pos,
-                                          lexeme_form=lex.accented, matched_form=vf.form))
+        if strip_accent(vf.form).lower() in tokens:
+            _emit(_lexeme_for_verb(vf.verb_id, db), vf.form, seen, results)
 
-    # verb infinitives
+    # verb infinitives → pair lexeme
     for v in db.execute(select(Verb)).scalars().all():
-        if strip_accent(v.infinitive).lower() not in tokens:
-            continue
-        pair = db.execute(
-            select(AspectPair).where(
-                (AspectPair.ipf_verb_id == v.id) | (AspectPair.pf_verb_id == v.id)
-            )
-        ).scalars().first()
-        if not pair:
-            continue
-        lex = db.execute(select(Lexeme).where(Lexeme.pair_id == pair.id)).scalar_one_or_none()
-        if lex and lex.id not in seen_lexeme_ids:
-            seen_lexeme_ids.add(lex.id)
-            results.append(SuggestedLink(lexeme_id=lex.id, lexeme_pos=lex.pos,
-                                          lexeme_form=lex.accented, matched_form=v.infinitive))
+        if strip_accent(v.infinitive).lower() in tokens:
+            _emit(_lexeme_for_verb(v.id, db), v.infinitive, seen, results)
 
-    # lexeme inflected forms (nouns/pronouns/numerals)
+    # lexeme inflected forms (nouns / adjectives / pronouns / numerals)
     for lf in db.execute(select(LexemeForm).where(LexemeForm.lexeme_id.isnot(None))).scalars().all():
-        if strip_accent(lf.form).lower() not in tokens:
-            continue
-        if lf.lexeme_id not in seen_lexeme_ids:
-            lex = db.get(Lexeme, lf.lexeme_id)
-            if lex:
-                seen_lexeme_ids.add(lex.id)
-                results.append(SuggestedLink(lexeme_id=lex.id, lexeme_pos=lex.pos,
-                                              lexeme_form=lex.accented, matched_form=lf.form))
+        if strip_accent(lf.form).lower() in tokens:
+            _emit(db.get(Lexeme, lf.lexeme_id), lf.form, seen, results)
 
-    # lexeme lemmas/accented forms
+    # lexeme lemmas / accented forms
     for lex in db.execute(select(Lexeme).where(Lexeme.pos != 'pair')).scalars().all():
         for candidate in [lex.lemma, strip_accent(lex.accented)]:
-            if candidate.lower() not in tokens:
-                continue
-            if lex.id not in seen_lexeme_ids:
-                seen_lexeme_ids.add(lex.id)
-                results.append(SuggestedLink(lexeme_id=lex.id, lexeme_pos=lex.pos,
-                                              lexeme_form=lex.accented, matched_form=lex.lemma))
-            break
+            if candidate.lower() in tokens:
+                _emit(lex, lex.lemma, seen, results)
+                break
 
     return results
 

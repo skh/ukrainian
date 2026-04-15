@@ -3,22 +3,36 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.entry import Lexeme, LexemeForm
+from app.models.entry import Lexeme
 from app.routers._forms import replace_lexeme_forms
-from app.schemas.entry import DeclinableCreate, LexemeFormCreate, LexemeRead
-
-_DECLINABLE_POS = ('adjective', 'pronoun', 'numeral')
+from app.schemas.entry import DeclinableCreate, LexemeFormCreate, LexemeRead, LexemeUpdate
 
 
-def _make_router(pos: str) -> APIRouter:
+def _make_router(
+    pos: str,
+    *,
+    stub_overwrite: bool = False,
+    list_with_forms: bool = False,
+) -> APIRouter:
     plural = f"{pos}s"
     router = APIRouter(tags=[plural])
 
-    @router.get(f"/api/{plural}", response_model=list[LexemeRead], operation_id=f"list_{plural}")
-    def list_items(db: Session = Depends(get_db)):
-        return db.execute(
-            select(Lexeme).where(Lexeme.pos == pos).order_by(Lexeme.lemma)
-        ).scalars().all()
+    if list_with_forms:
+        @router.get(f"/api/{plural}", response_model=list[LexemeRead], operation_id=f"list_{plural}")
+        def list_items(with_forms: bool = False, db: Session = Depends(get_db)):
+            entries = db.execute(
+                select(Lexeme).where(Lexeme.pos == pos).order_by(Lexeme.lemma)
+            ).scalars().all()
+            if not with_forms:
+                for e in entries:
+                    e.forms = []
+            return entries
+    else:
+        @router.get(f"/api/{plural}", response_model=list[LexemeRead], operation_id=f"list_{plural}")
+        def list_items(db: Session = Depends(get_db)):  # type: ignore[misc]
+            return db.execute(
+                select(Lexeme).where(Lexeme.pos == pos).order_by(Lexeme.lemma)
+            ).scalars().all()
 
     @router.get(f"/api/{plural}/{{item_id}}", response_model=LexemeRead, operation_id=f"get_{pos}")
     def get_item(item_id: int, db: Session = Depends(get_db)):
@@ -35,6 +49,16 @@ def _make_router(pos: str) -> APIRouter:
             select(Lexeme).where(Lexeme.accented == data.accented)
         ).scalar_one_or_none()
         if existing:
+            if stub_overwrite:
+                is_stub = existing.pos == pos and existing.gender is None and not existing.forms
+                if is_stub:
+                    existing.lemma = data.accented.replace('\u0301', '')
+                    existing.accented = data.accented
+                    existing.gender = data.gender
+                    existing.number_type = data.number_type
+                    db.commit()
+                    db.refresh(existing)
+                    return existing
             raise HTTPException(
                 status_code=409,
                 detail={"message": "Entry already exists", "id": existing.id},
@@ -50,14 +74,17 @@ def _make_router(pos: str) -> APIRouter:
         return item
 
     @router.patch(f"/api/{plural}/{{item_id}}", response_model=LexemeRead, operation_id=f"update_{pos}")
-    def update_item(item_id: int, data: DeclinableCreate, db: Session = Depends(get_db)):
+    def update_item(item_id: int, data: LexemeUpdate, db: Session = Depends(get_db)):
         item = db.execute(
             select(Lexeme).where(Lexeme.id == item_id, Lexeme.pos == pos)
         ).scalar_one_or_none()
         if not item:
             raise HTTPException(status_code=404, detail=f"{pos.capitalize()} not found")
-        item.accented = data.accented
-        item.lemma = data.accented.replace('\u0301', '')
+        if data.accented is not None:
+            item.accented = data.accented
+            item.lemma = data.accented.replace('\u0301', '')
+        if data.lemma is not None:
+            item.lemma = data.lemma
         item.gender = data.gender
         item.number_type = data.number_type
         db.commit()
@@ -88,6 +115,7 @@ def _make_router(pos: str) -> APIRouter:
     return router
 
 
+noun_router     = _make_router('noun',      stub_overwrite=True, list_with_forms=True)
 adjective_router = _make_router('adjective')
 pronoun_router   = _make_router('pronoun')
 numeral_router   = _make_router('numeral')
