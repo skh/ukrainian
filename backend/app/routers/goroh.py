@@ -104,6 +104,10 @@ def _cell_forms(cell) -> list[str]:
         text = span.get_text(strip=True)
         if text and text not in ("—", "-"):
             result.append(text)
+    # Goroh lists -сь before -ся but -ся is the standard form.
+    # If both variants are present, drop the -сь ones.
+    if any(strip_accent(f).endswith("ся") for f in result):
+        result = [f for f in result if not strip_accent(f).endswith("сь")]
     return result
 
 
