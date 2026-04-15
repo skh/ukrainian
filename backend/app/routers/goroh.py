@@ -246,7 +246,10 @@ def _parse_article(block, db: Session) -> GorohCandidate | None:
     taglist = block.find("div", class_="taglist")
     tag_texts = [a.get_text(strip=True) for a in taglist.find_all("a")] if taglist else []
 
-    pos = next((_POS_MAP[t] for t in tag_texts if t in _POS_MAP), None)
+    if "дієприкметник" in tag_texts:
+        pos = "adjective"
+    else:
+        pos = next((_POS_MAP[t] for t in tag_texts if t in _POS_MAP), None)
     if not pos:
         return None
 
