@@ -27,11 +27,6 @@ def list_affixes(db: Session = Depends(get_db)):
     return rows
 
 
-@router.get("/{derivation_id}", response_model=DerivationRead)
-def get_derivation(derivation_id: int, db: Session = Depends(get_db)):
-    return get_or_404(db, Derivation, derivation_id)
-
-
 @router.post("", response_model=DerivationRead, status_code=201)
 def create_derivation(data: DerivationCreate, db: Session = Depends(get_db)):
     derivation = Derivation(**data.model_dump())

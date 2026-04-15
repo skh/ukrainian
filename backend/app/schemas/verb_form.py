@@ -21,7 +21,3 @@ class VerbFormRead(VerbFormCreate):
 class VerbFormUpdate(BaseModel):
     form: str
 
-
-class VerbFormsBulkCreate(BaseModel):
-    verb_id: int
-    forms: list[VerbFormCreate]

@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -11,12 +11,6 @@ class WFLexemeCreate(BaseModel):
     pos: Literal["noun", "adjective", "adverb", "conjunction", "numeral", "preposition", "pronoun"]
 
 
-class WFLexemeUpdate(BaseModel):
-    accented: Optional[str] = None
-    lemma: Optional[str] = None
-    pos: Optional[Literal["noun", "adjective", "adverb", "conjunction", "numeral", "preposition", "pronoun"]] = None
-
-
 class WordFamilyRead(BaseModel):
     id: int
     members: list[LexemeRead]
@@ -24,6 +18,3 @@ class WordFamilyRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Keep old names as aliases
-LexemeCreate = WFLexemeCreate
-LexemeUpdate = WFLexemeUpdate

@@ -78,9 +78,3 @@ def update_verb_form(verb_id: int, form_id: int, data: VerbFormUpdate, db: Sessi
     db.refresh(form)
     return _to_read(form)
 
-
-@router.delete("/{verb_id}/forms", status_code=204)
-def delete_verb_forms(verb_id: int, db: Session = Depends(get_db)):
-    get_or_404(db, Verb, verb_id)
-    db.execute(LexemeForm.__table__.delete().where(LexemeForm.verb_id == verb_id))
-    db.commit()
