@@ -174,6 +174,7 @@ def _parse_verb_table(table) -> list[GorohForm]:
     forms: list[GorohForm] = []
     current_tense: str | None = None
     past_plural_added = False
+    past_genders_seen: set[str] = set()
 
     for row in table.find_all("tr", class_="row"):
         row_classes = row.get("class", [])
@@ -184,6 +185,7 @@ def _parse_verb_table(table) -> list[GorohForm]:
                 current_tense = _TENSE_MAP.get(cell.get_text(strip=True))
                 if current_tense == "past":
                     past_plural_added = False
+                    past_genders_seen = set()
             continue
 
         if "column-header" in row_classes or not current_tense:
@@ -198,8 +200,11 @@ def _parse_verb_table(table) -> list[GorohForm]:
 
         if current_tense == "past":
             gender = _PAST_GENDER_MAP.get(row_label)
-            if not gender:
+            # Skip unknown labels and duplicate gender rows (latter are past-active-participle
+            # forms that goroh lists after the standard past tense with the same row labels).
+            if not gender or gender in past_genders_seen:
                 continue
+            past_genders_seen.add(gender)
             for cell in form_cells:
                 cell_classes = cell.get("class", [])
                 if "light-cell" in cell_classes:
