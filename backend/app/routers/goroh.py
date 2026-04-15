@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.entry import Lexeme
 from app.models.verb import Verb
+from app.utils import strip_accent
 
 router = APIRouter(tags=["goroh"])
 
@@ -221,9 +222,6 @@ def _parse_verb_table(table) -> list[GorohForm]:
     return forms
 
 
-def _strip(s: str) -> str:
-    return s.replace("\u0301", "")
-
 
 def _parse_article(block, db: Session) -> GorohCandidate | None:
     goroh_id = block.get("id", "")
@@ -261,7 +259,7 @@ def _parse_article(block, db: Session) -> GorohCandidate | None:
             forms, number_type = _parse_declinable_table(table, pos)
 
     # Duplicate check
-    lemma = _strip(accented)
+    lemma = strip_accent(accented)
     already_exists = False
     existing_id: int | None = None
 

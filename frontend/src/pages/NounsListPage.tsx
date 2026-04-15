@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { Entry, LexemeTranslation } from '../types'
 import { Nav } from '../components/Nav'
 import { DictionaryTabs } from '../components/DictionaryTabs'
+import { Pagination } from '../components/Pagination'
 import { genderBg } from '../utils/nouns'
 import { stripAccent } from '../utils/forms'
 
@@ -85,26 +86,13 @@ export default function NounsListPage() {
         </table>
       )}
 
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-          <button onClick={() => setPage(0)} disabled={clampedPage === 0}>«</button>
-          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={clampedPage === 0}>‹</button>
-          <span style={{ fontSize: '0.9em' }}>{clampedPage + 1} / {totalPages}</span>
-          <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={clampedPage === totalPages - 1}>›</button>
-          <button onClick={() => setPage(totalPages - 1)} disabled={clampedPage === totalPages - 1}>»</button>
-          <span style={{ marginLeft: '0.5rem' }}>
-            {[10, 20, 50, 100].map(n => (
-              <button
-                key={n}
-                onClick={() => { setPageSize(n); setPage(0) }}
-                style={{ marginRight: '0.25rem', fontWeight: pageSize === n ? 'bold' : 'normal' }}
-              >
-                {n}
-              </button>
-            ))}
-          </span>
-        </div>
-      )}
+      <Pagination
+        currentPage={clampedPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   )
 }

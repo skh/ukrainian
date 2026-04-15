@@ -8,6 +8,7 @@ import { TagChip } from '../widgets/TagChip'
 import { TagPicker } from '../widgets/TagPicker'
 import { tagColor } from '../widgets/tagColor'
 import { Nav } from '../components/Nav'
+import { Pagination } from '../components/Pagination'
 import { DictionaryTabs } from '../components/DictionaryTabs'
 
 export default function VerbListPage() {
@@ -309,28 +310,13 @@ export default function VerbListPage() {
         </tbody>
       </table></div>
 
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-          <button onClick={() => setPage(0)} disabled={clampedPage === 0}>«</button>
-          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={clampedPage === 0}>‹</button>
-          <span style={{ fontSize: '0.9em' }}>
-            {clampedPage + 1} / {totalPages}
-          </span>
-          <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={clampedPage === totalPages - 1}>›</button>
-          <button onClick={() => setPage(totalPages - 1)} disabled={clampedPage === totalPages - 1}>»</button>
-          <span style={{ marginLeft: '0.5rem' }}>
-            {[10, 20, 50, 100].map(n => (
-              <button
-                key={n}
-                onClick={() => { setPageSize(n); setPage(0) }}
-                style={{ marginRight: '0.25rem', fontWeight: pageSize === n ? 'bold' : 'normal' }}
-              >
-                {n}
-              </button>
-            ))}
-          </span>
-        </div>
-      )}
+      <Pagination
+        currentPage={clampedPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {corpora.length > 0 && (() => {
         const verbIdsWithFreq = new Set(allFrequencies.map(f => f.verb_id))

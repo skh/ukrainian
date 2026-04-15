@@ -20,14 +20,12 @@ from app.schemas.chunk import (
     ChunkUpdate,
     SuggestedLink,
 )
+from app.utils import strip_accent
 
 router = APIRouter(tags=["chunks"])
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
-
-def _strip_accent(s: str) -> str:
-    return s.replace("\u0301", "")
 
 
 def _chunk_query():
@@ -92,7 +90,7 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
     and return candidate lexeme backlinks.
     """
     tokens = set(
-        _strip_accent(tok).lower()
+        strip_accent(tok).lower()
         for tok in re.split(r"[\s,;.!?\"'()\[\]«»—–\-~/]+", text)
         if len(tok) > 1
     )
@@ -104,7 +102,7 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
 
     # verb inflected forms
     for vf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
-        if _strip_accent(vf.form).lower() not in tokens:
+        if strip_accent(vf.form).lower() not in tokens:
             continue
         pair = db.execute(
             select(AspectPair).where(
@@ -121,7 +119,7 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
 
     # verb infinitives
     for v in db.execute(select(Verb)).scalars().all():
-        if _strip_accent(v.infinitive).lower() not in tokens:
+        if strip_accent(v.infinitive).lower() not in tokens:
             continue
         pair = db.execute(
             select(AspectPair).where(
@@ -138,7 +136,7 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
 
     # lexeme inflected forms (nouns/pronouns/numerals)
     for lf in db.execute(select(LexemeForm).where(LexemeForm.lexeme_id.isnot(None))).scalars().all():
-        if _strip_accent(lf.form).lower() not in tokens:
+        if strip_accent(lf.form).lower() not in tokens:
             continue
         if lf.lexeme_id not in seen_lexeme_ids:
             lex = db.get(Lexeme, lf.lexeme_id)
@@ -149,7 +147,7 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
 
     # lexeme lemmas/accented forms
     for lex in db.execute(select(Lexeme).where(Lexeme.pos != 'pair')).scalars().all():
-        for candidate in [lex.lemma, _strip_accent(lex.accented)]:
+        for candidate in [lex.lemma, strip_accent(lex.accented)]:
             if candidate.lower() not in tokens:
                 continue
             if lex.id not in seen_lexeme_ids:

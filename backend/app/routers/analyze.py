@@ -15,13 +15,11 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.entry import Lexeme, LexemeForm, LexemeTranslation
 from app.models.verb import Verb, AspectPair
+from app.utils import strip_accent
 
 router = APIRouter(tags=["analyze"])
 
 _WORD_RE = re.compile(r'[а-яіїєґА-ЯІЇЄҐ\u0301]+')
-
-def _strip_accent(s: str) -> str:
-    return s.replace("\u0301", "")
 
 
 class AnalyzeRequest(BaseModel):
@@ -70,7 +68,7 @@ def _build_lookup(db: Session) -> dict[str, Lexeme]:
 
     # Noun/word inflected forms
     for lf in db.execute(select(LexemeForm).where(LexemeForm.lexeme_id.isnot(None))).scalars().all():
-        key = _strip_accent(lf.form).lower()
+        key = strip_accent(lf.form).lower()
         if key not in lookup:
             lex = db.get(Lexeme, lf.lexeme_id)
             if lex:
@@ -87,19 +85,19 @@ def _build_lookup(db: Session) -> dict[str, Lexeme]:
                 verb_to_pair[pair.pf_verb_id] = lex
 
     for lf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
-        key = _strip_accent(lf.form).lower()
+        key = strip_accent(lf.form).lower()
         if key not in lookup and lf.verb_id in verb_to_pair:
             lookup[key] = verb_to_pair[lf.verb_id]
 
     # Verb infinitives
     for v in db.execute(select(Verb)).scalars().all():
-        key = _strip_accent(v.infinitive).lower()
+        key = strip_accent(v.infinitive).lower()
         if key not in lookup and v.id in verb_to_pair:
             lookup[key] = verb_to_pair[v.id]
 
     # Lexeme lemmas / accented forms (non-pair)
     for lex in db.execute(select(Lexeme).where(Lexeme.pos != 'pair')).scalars().all():
-        for candidate in [lex.lemma, _strip_accent(lex.accented)]:
+        for candidate in [lex.lemma, strip_accent(lex.accented)]:
             if candidate and candidate.lower() not in lookup:
                 lookup[candidate.lower()] = lex
 
@@ -165,7 +163,7 @@ def analyze_text(body: AnalyzeRequest, db: Session = Depends(get_db)):
             tokens.append(AnalyzedToken(text=body.text[last:m.start()], is_word=False))
 
         word = m.group()
-        key = _strip_accent(word).lower()
+        key = strip_accent(word).lower()
         lex = lookup.get(key)
 
         if lex:

@@ -9,12 +9,9 @@ from app.database import get_db
 from app.models.verb import AspectPair, Verb, VerbFrequency
 from app import sketchengine
 from app.schemas.frequency import FrequencyRead
+from app.utils import strip_accent
 
 router = APIRouter(tags=["frequencies"])
-
-
-def _strip_accent(s: str) -> str:
-    return s.replace("\u0301", "")
 
 
 @router.get("/api/corpora", response_model=list[str])
@@ -53,7 +50,7 @@ def fetch_pair_frequency(pair_id: int, corpus: str, db: Session = Depends(get_db
                 verb_pairs.append((verb_id, v))
 
     try:
-        verb_ipms = [(vid, sketchengine.fetch_ipm(corpus, _strip_accent(v.infinitive))) for vid, v in verb_pairs]
+        verb_ipms = [(vid, sketchengine.fetch_ipm(corpus, strip_accent(v.infinitive))) for vid, v in verb_pairs]
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Sketch Engine error: {e}")
 

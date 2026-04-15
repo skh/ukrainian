@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
-import { Entry, LexemeTranslation } from '../types'
+import { Entry } from '../types'
 import { parseDeclinable } from '../utils/adjectiveParser'
 import { Nav } from '../components/Nav'
 import { TranslationRow } from '../components/TranslationRow'
+import { useTranslations } from '../hooks/useTranslations'
 import { CASE_LABELS, CASES } from '../utils/nouns'
 
 type DeclinablePos = 'adjective' | 'pronoun' | 'numeral'
@@ -29,10 +30,9 @@ export default function DeclinablePage({ pos }: Props) {
   const [accentedSaved, setAccentedSaved] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const [parseError, setParseError] = useState('')
-  const [langs, setLangs] = useState<string[]>([])
-  const [translations, setTranslations] = useState<LexemeTranslation[]>([])
   const [confirming, setConfirming] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const { langs, translations, addTranslation, updateTranslation, deleteTranslation } = useTranslations(id)
 
   useEffect(() => {
     if (!id) return
@@ -40,29 +40,7 @@ export default function DeclinablePage({ pos }: Props) {
       setItem(n)
       setEditAccented(n.accented)
     })
-    Promise.all([
-      api.get<string[]>('/languages'),
-      api.get<LexemeTranslation[]>(`/lexemes/${id}/translations`),
-    ]).then(([ls, trs]) => {
-      setLangs(ls)
-      setTranslations(trs)
-    })
   }, [id, plural])
-
-  async function addTranslation(lang: string, text: string) {
-    const t = await api.post<LexemeTranslation>(`/lexemes/${id}/translations`, { lang, text })
-    setTranslations(prev => [...prev, t])
-  }
-
-  async function updateTranslation(tid: number, text: string) {
-    const t = await api.put<LexemeTranslation>(`/lexeme-translations/${tid}`, { text })
-    setTranslations(prev => prev.map(x => x.id === tid ? t : x))
-  }
-
-  async function deleteTranslation(tid: number) {
-    await api.delete(`/lexeme-translations/${tid}`)
-    setTranslations(prev => prev.filter(x => x.id !== tid))
-  }
 
   async function saveAccented(e: React.FormEvent) {
     e.preventDefault()
