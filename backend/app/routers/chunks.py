@@ -20,7 +20,7 @@ from app.schemas.chunk import (
     ChunkUpdate,
     SuggestedLink,
 )
-from app.utils import strip_accent
+from app.utils import normalize
 
 router = APIRouter(tags=["chunks"])
 
@@ -111,8 +111,8 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
     and return candidate lexeme backlinks.
     """
     tokens = set(
-        strip_accent(tok).lower()
-        for tok in re.split(r"[\s,;.!?\"'()\[\]«»—–\-~/]+", text)
+        normalize(tok)
+        for tok in re.split(r"[\s,;.!?()\[\]«»—–\-~/]+", text)
         if len(tok) > 1
     )
     if not tokens:
@@ -123,23 +123,23 @@ def suggest_links(text: str, db: Session = Depends(get_db)):
 
     # verb inflected forms → pair lexeme
     for vf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
-        if strip_accent(vf.form).lower() in tokens:
+        if normalize(vf.form) in tokens:
             _emit(_lexeme_for_verb(vf.verb_id, db), vf.form, seen, results)
 
     # verb infinitives → pair lexeme
     for v in db.execute(select(Verb)).scalars().all():
-        if strip_accent(v.infinitive).lower() in tokens:
+        if normalize(v.infinitive) in tokens:
             _emit(_lexeme_for_verb(v.id, db), v.infinitive, seen, results)
 
     # lexeme inflected forms (nouns / adjectives / pronouns / numerals)
     for lf in db.execute(select(LexemeForm).where(LexemeForm.lexeme_id.isnot(None))).scalars().all():
-        if strip_accent(lf.form).lower() in tokens:
+        if normalize(lf.form) in tokens:
             _emit(db.get(Lexeme, lf.lexeme_id), lf.form, seen, results)
 
     # lexeme lemmas / accented forms
     for lex in db.execute(select(Lexeme).where(Lexeme.pos != 'pair')).scalars().all():
-        for candidate in [lex.lemma, strip_accent(lex.accented)]:
-            if candidate.lower() in tokens:
+        for candidate in [normalize(lex.lemma), normalize(lex.accented)]:
+            if candidate in tokens:
                 _emit(lex, lex.lemma, seen, results)
                 break
 

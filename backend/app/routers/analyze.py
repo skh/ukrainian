@@ -15,11 +15,14 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.entry import Lexeme, LexemeForm, LexemeTranslation
 from app.models.verb import Verb, AspectPair
-from app.utils import strip_accent
+from app.utils import normalize
 
 router = APIRouter(tags=["analyze"])
 
-_WORD_RE = re.compile(r'[а-яіїєґА-ЯІЇЄҐ\u0301]+')
+# Matches a Ukrainian word, including an internal apostrophe (U+0027, U+2019, U+02BC)
+# surrounded by letters on both sides.
+_LETTERS = r'[а-яіїєґА-ЯІЇЄҐ\u0301]'
+_WORD_RE = re.compile(rf"{_LETTERS}+(?:['\u2019\u02BC]{_LETTERS}+)*")
 
 
 class AnalyzeRequest(BaseModel):
@@ -68,7 +71,7 @@ def _build_lookup(db: Session) -> dict[str, Lexeme]:
 
     # Noun/word inflected forms
     for lf in db.execute(select(LexemeForm).where(LexemeForm.lexeme_id.isnot(None))).scalars().all():
-        key = strip_accent(lf.form).lower()
+        key = normalize(lf.form)
         if key not in lookup:
             lex = db.get(Lexeme, lf.lexeme_id)
             if lex:
@@ -85,21 +88,21 @@ def _build_lookup(db: Session) -> dict[str, Lexeme]:
                 verb_to_pair[pair.pf_verb_id] = lex
 
     for lf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
-        key = strip_accent(lf.form).lower()
+        key = normalize(lf.form)
         if key not in lookup and lf.verb_id in verb_to_pair:
             lookup[key] = verb_to_pair[lf.verb_id]
 
     # Verb infinitives
     for v in db.execute(select(Verb)).scalars().all():
-        key = strip_accent(v.infinitive).lower()
+        key = normalize(v.infinitive)
         if key not in lookup and v.id in verb_to_pair:
             lookup[key] = verb_to_pair[v.id]
 
     # Lexeme lemmas / accented forms (non-pair)
     for lex in db.execute(select(Lexeme).where(Lexeme.pos != 'pair')).scalars().all():
-        for candidate in [lex.lemma, strip_accent(lex.accented)]:
-            if candidate and candidate.lower() not in lookup:
-                lookup[candidate.lower()] = lex
+        for candidate in [normalize(lex.lemma), normalize(lex.accented)]:
+            if candidate and candidate not in lookup:
+                lookup[candidate] = lex
 
     return lookup
 
@@ -163,7 +166,7 @@ def analyze_text(body: AnalyzeRequest, db: Session = Depends(get_db)):
             tokens.append(AnalyzedToken(text=body.text[last:m.start()], is_word=False))
 
         word = m.group()
-        key = strip_accent(word).lower()
+        key = normalize(word)
         lex = lookup.get(key)
 
         if lex:
