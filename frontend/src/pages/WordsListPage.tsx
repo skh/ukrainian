@@ -122,7 +122,7 @@ export default function WordsListPage() {
                     </span>
                   )}
                 </td>
-                <td className="text-dim" style={{ fontSize: '0.85em' }}>
+                <td className="text-dim">
                   {e.pos === 'noun' && (
                     <>
                       {e.gender && (

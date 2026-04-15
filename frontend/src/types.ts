@@ -138,6 +138,24 @@ export interface AnalyzeResponse {
   unknown: string[]
 }
 
+export interface GorohForm {
+  tags: string
+  form: string
+}
+
+export interface GorohCandidate {
+  goroh_id: string
+  accented: string
+  gloss: string | null
+  pos: string
+  gender: 'm' | 'f' | 'n' | null
+  number_type: 'sg' | 'pl' | 'both' | null
+  aspect: 'ipf' | 'pf' | null
+  forms: GorohForm[]
+  already_exists: boolean
+  existing_id: number | null
+}
+
 export type DerivationType = 'prefix' | 'suffix' | 'stem_change' | 'stress_change' | 'reflexive'
 
 export interface VerbFormRead {

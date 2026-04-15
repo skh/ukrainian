@@ -112,10 +112,10 @@ export default function ChunksListPage() {
                     />
                   </div>
                 </td>
-                <td style={{ fontSize: '0.85em', color: '#555' }}>
-                  {c.translations.map(t => `${t.lang}: ${t.text}`).join(' · ') || <span style={{ color: '#aaa' }}>—</span>}
+                <td className="text-dim" style={{ fontSize: '0.85em' }}>
+                  {c.translations.map(t => `${t.lang}: ${t.text}`).join(' · ') || <span className="text-faint">—</span>}
                 </td>
-                <td style={{ fontSize: '0.85em', color: '#666' }}>{c.lang}</td>
+                <td className="text-secondary" style={{ fontSize: '0.85em' }}>{c.lang}</td>
               </tr>
             ))}
           </tbody>

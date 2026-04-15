@@ -4,6 +4,7 @@ const DICTIONARY_PATHS = ['/', '/nouns', '/adjectives', '/pronouns', '/numerals'
 
 const NAV_ITEMS = [
   { label: 'Dictionary', path: '/' },
+  { label: 'Quick add',  path: '/quick-add' },
   { label: 'Drills',     path: '/drill' },
   { label: 'Analyze',    path: '/analyze' },
   { label: 'Chunks',     path: '/chunks' },

@@ -268,7 +268,7 @@ export default function VerbListPage() {
                   <span style={{ color: '#bbb' }}>)</span>
                 )}
               </td>
-              <td className="text-dim" style={{ fontSize: '0.88em' }}>
+              <td className="text-dim" style={{ fontSize: '0.85em' }}>
                 {allPairTranslations.filter(t => t.lexeme_id === p.lexeme_id && t.lang === 'de').map(t => t.text).join(', ')}
               </td>
               <td className="col-mobile-hide">
@@ -353,7 +353,7 @@ export default function VerbListPage() {
                   <tr key={p.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/pairs/${p.id}`)}>
                     <td>
                       {p.ipf_verb && (
-                        <span style={{ background: aspectBg.ipf, padding: '0.1em 0.35em', borderRadius: '3px', marginRight: '0.3em' }}>
+                        <span className="badge" style={{ background: aspectBg.ipf, marginRight: '0.3em' }}>
                           {p.ipf_verb.accented}
                         </span>
                       )}
