@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
+import { CandidateCard, entryPath } from '../components/GorohLookup'
 import { api } from '../api/client'
-import { AnalyzedToken, AnalysisTokenMatch, AnalyzeResponse } from '../types'
+import { AnalyzedToken, AnalysisTokenMatch, AnalyzeResponse, GorohCandidate } from '../types'
 
 function Tooltip({ match, x, y }: { match: AnalysisTokenMatch; x: number; y: number }) {
   const vw = window.innerWidth
@@ -42,6 +44,14 @@ export default function TextAnalysisPage() {
   const [loading, setLoading] = useState(false)
   const [tooltip, setTooltip] = useState<{ match: AnalysisTokenMatch; x: number; y: number } | null>(null)
 
+  // goroh lookup state for unknown words
+  const [activeWord, setActiveWord] = useState<string | null>(null)
+  const [candidates, setCandidates] = useState<GorohCandidate[] | null>(null)
+  const [lookupLoading, setLookupLoading] = useState(false)
+  const [lookupError, setLookupError] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [added, setAdded] = useState<Map<string, { id: number; pos: string; accented: string }>>(new Map())
+
   async function analyze() {
     if (!inputText.trim()) return
     setLoading(true)
@@ -49,9 +59,42 @@ export default function TextAnalysisPage() {
       const result = await api.post<AnalyzeResponse>('/analyze-text', { text: inputText })
       setTokens(result.tokens)
       setUnknown(result.unknown)
+      setActiveWord(null)
+      setCandidates(null)
+      setAdded(new Map())
     } finally {
       setLoading(false)
     }
+  }
+
+  async function lookUp(word: string) {
+    if (activeWord === word) {
+      setActiveWord(null)
+      setCandidates(null)
+      return
+    }
+    setActiveWord(word)
+    setCandidates(null)
+    setSelectedId(null)
+    setLookupError('')
+    setLookupLoading(true)
+    try {
+      const results = await api.get<GorohCandidate[]>(`/goroh-fetch?word=${encodeURIComponent(word)}`)
+      setCandidates(results)
+    } catch (err) {
+      setLookupError(String(err))
+    } finally {
+      setLookupLoading(false)
+    }
+  }
+
+  function handleSaved(id: number, pos: string) {
+    const accented = candidates?.find(c => c.goroh_id === selectedId)?.accented ?? activeWord ?? ''
+    setAdded(prev => new Map(prev).set(activeWord!, { id, pos, accented }))
+    setCandidates(prev => prev?.map(c =>
+      c.goroh_id === selectedId ? { ...c, already_exists: true, existing_id: id } : c
+    ) ?? null)
+    setSelectedId(null)
   }
 
   const handleMouseEnter = useCallback((match: AnalysisTokenMatch, e: React.MouseEvent) => {
@@ -112,12 +155,59 @@ export default function TextAnalysisPage() {
 
           {unknown.length > 0 && (
             <div style={{ marginTop: '1.5rem', maxWidth: '700px' }}>
-              <h3 className="text-secondary" style={{ marginBottom: '0.4rem' }}>Unknown words ({unknown.length})</h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.6rem' }}>
-                {unknown.map(w => (
-                  <span key={w} className="text-muted" style={{ fontSize: '0.9em' }}>{w}</span>
-                ))}
+              <h3 className="text-secondary" style={{ marginBottom: '0.4rem' }}>
+                Unknown words ({unknown.length - added.size} remaining)
+              </h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.6rem', marginBottom: '0.75rem' }}>
+                {unknown.map(w => {
+                  const savedEntry = added.get(w)
+                  if (savedEntry) {
+                    return (
+                      <span key={w} style={{ fontSize: '0.9em' }}>
+                        <span style={{ color: 'green' }}>✓</span>{' '}
+                        <Link to={entryPath(savedEntry.pos, savedEntry.id)}>{savedEntry.accented}</Link>
+                      </span>
+                    )
+                  }
+                  return (
+                    <button
+                      key={w}
+                      onClick={() => lookUp(w)}
+                      style={{
+                        background: activeWord === w ? '#111' : 'transparent',
+                        color: activeWord === w ? '#fff' : '#005BBB',
+                        border: `1px solid ${activeWord === w ? '#111' : '#005BBB'}`,
+                        borderRadius: '4px',
+                        padding: '0.1em 0.5em',
+                        fontSize: '0.9em',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {w}
+                    </button>
+                  )
+                })}
               </div>
+
+              {activeWord && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  {lookupLoading && <p className="text-muted">Fetching…</p>}
+                  {lookupError && <p className="text-danger">{lookupError}</p>}
+                  {candidates !== null && candidates.length === 0 && (
+                    <p className="text-muted">No goroh candidates found for "{activeWord}".</p>
+                  )}
+                  {candidates?.map(c => (
+                    <CandidateCard
+                      key={c.goroh_id}
+                      candidate={c}
+                      selected={selectedId === c.goroh_id}
+                      onSelect={() => setSelectedId(c.goroh_id)}
+                      onSaved={handleSaved}
+                      onCancel={() => setSelectedId(null)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </>
