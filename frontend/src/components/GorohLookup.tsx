@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { GorohCandidate, Entry, Verb } from '../types'
 import { aspectBg } from '../utils/theme'
+import { useTranslations } from '../hooks/useTranslations'
+import { TranslationRow } from './TranslationRow'
 
 export const POS_LABELS: Record<string, string> = {
   noun: 'іменник',
@@ -58,6 +60,31 @@ export function InlineForm({ candidate, onSaved, onCancel }: InlineFormProps) {
   const [numberType, setNumberType] = useState<'sg' | 'pl' | 'both'>(candidate.number_type ?? 'both')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [savedId, setSavedId] = useState<number | null>(null)
+  const [savedPos, setSavedPos] = useState<string>('')
+  const { langs, translations, addTranslation, updateTranslation, deleteTranslation } = useTranslations(
+    savedId?.toString()
+  )
+
+  if (savedId) {
+    const lemma = accented.replace(/\u0301/g, '')
+    return (
+      <div style={{ marginTop: '0.5rem' }}>
+        {langs.map(lang => (
+          <TranslationRow
+            key={lang}
+            lang={lang}
+            items={translations.filter(t => t.lang === lang)}
+            searchWord={lemma}
+            onAdd={text => addTranslation(lang, text)}
+            onUpdate={(tid, text) => updateTranslation(tid, text)}
+            onDelete={tid => deleteTranslation(tid)}
+          />
+        ))}
+        <button style={{ marginTop: '0.5rem' }} onClick={() => onSaved(savedId, savedPos)}>Done</button>
+      </div>
+    )
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -84,7 +111,7 @@ export function InlineForm({ candidate, onSaved, onCancel }: InlineFormProps) {
         if (candidate.forms.length > 0) {
           await api.put(`/nouns/${noun.id}/forms`, candidate.forms)
         }
-        onSaved(noun.id, 'noun')
+        setSavedId(noun.id); setSavedPos('noun')
 
       } else if (['adjective', 'pronoun', 'numeral'].includes(candidate.pos)) {
         const plural = `${candidate.pos}s`
@@ -92,11 +119,11 @@ export function InlineForm({ candidate, onSaved, onCancel }: InlineFormProps) {
         if (candidate.forms.length > 0) {
           await api.put(`/${plural}/${entry.id}/forms`, candidate.forms)
         }
-        onSaved(entry.id, candidate.pos)
+        setSavedId(entry.id); setSavedPos(candidate.pos)
 
       } else {
         const entry = await api.post<Entry>('/words', { accented, pos: candidate.pos })
-        onSaved(entry.id, candidate.pos)
+        setSavedId(entry.id); setSavedPos(candidate.pos)
       }
     } catch (err) {
       setError(String(err))
