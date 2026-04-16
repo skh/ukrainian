@@ -1,4 +1,5 @@
 """Fetch and parse UK→DE translation candidates from verbformen.com."""
+import re
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import APIRouter, HTTPException, Query
@@ -37,8 +38,8 @@ class VerbformenCandidate(BaseModel):
 
 
 def _parse_entry(block) -> VerbformenCandidate | None:
-    # German word — first q.wF in block
-    q = block.find("q", class_="wF")
+    # German word — first <q> in block (class varies by gender: wF=fem, wM=masc, wN=neut, none=other POS)
+    q = block.find("q")
     if not q:
         return None
     german = q.get_text(strip=True)
@@ -67,13 +68,37 @@ def _parse_entry(block) -> VerbformenCandidate | None:
                 pos = t
                 break
 
-    # Ukrainian gloss — <mark> inside span[lang="uk"]
+    # Ukrainian gloss — <mark> inside span[lang="uk"].
+    # Verbformen marks the search term wherever it appears, so we must check that
+    # <mark> is the *first* non-whitespace content (= primary translation, not a
+    # conjunction or secondary mention). If text precedes the mark, discard entry.
     uk_gloss = None
     uk_span = block.find("span", lang="uk")
     if uk_span:
         mark = uk_span.find("mark")
         if mark:
-            uk_gloss = mark.get_text(strip=True)
+            # Check whether any non-whitespace text comes before the <mark>
+            text_before = ""
+            for child in uk_span.children:
+                if child is mark:
+                    break
+                if getattr(child, "name", None) == "img":
+                    continue
+                text_before += str(child) if isinstance(child, str) else child.get_text()
+            if text_before.strip():
+                return None  # search word is not the primary translation
+            # Also check the character after </mark> — if it's a letter, the search
+            # word is only a prefix of another word (e.g. <mark>або</mark>немент)
+            after = mark.next_sibling
+            if after and isinstance(after, str) and re.match(r'[а-яіїєґА-ЯІЇЄҐA-Za-z]', str(after)):
+                return None
+            # Full gloss text (excluding flag img) for display
+            parts = []
+            for child in uk_span.children:
+                if getattr(child, "name", None) == "img":
+                    continue
+                parts.append(str(child) if isinstance(child, str) else child.get_text())
+            uk_gloss = " ".join("".join(parts).split()).strip(", ·")
 
     # German definition — <i> inside p.rNt that has rInf but not wKnFmt
     definition = None

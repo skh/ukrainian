@@ -99,7 +99,10 @@ export function TranslationRow({ lang, items, searchWord, onAdd, onUpdate, onDel
       {adding && (candidatesLoading || candidates.length > 0) && (
         <div style={{ marginLeft: '2rem', marginTop: '0.2rem' }}>
           {candidatesLoading && <span className="text-muted">Fetching…</span>}
-          {candidates.map((c, i) => (
+          {[...candidates].sort((a, b) => {
+            const order = ['A1','A2','B1','B2','C1','C2']
+            return (a.cefr ? order.indexOf(a.cefr) : order.length) - (b.cefr ? order.indexOf(b.cefr) : order.length)
+          }).map((c, i) => (
             <button
               key={i}
               onClick={() => setNewText(c.german)}
@@ -107,6 +110,7 @@ export function TranslationRow({ lang, items, searchWord, onAdd, onUpdate, onDel
                 marginRight: '0.4rem',
                 marginBottom: '0.2rem',
                 background: newText === c.german ? '#dbeafe' : '#f3f4f6',
+                color: '#111',
                 border: '1px solid #d1d5db',
                 borderRadius: '4px',
                 padding: '0.1em 0.45em',
@@ -116,7 +120,6 @@ export function TranslationRow({ lang, items, searchWord, onAdd, onUpdate, onDel
             >
               {c.article && <span className="text-muted" style={{ marginRight: '0.2em' }}>{c.article}</span>}
               {c.german}
-              {c.cefr && <span className="text-muted" style={{ marginLeft: '0.35em', fontSize: '0.8em' }}>{c.cefr}</span>}
               {c.uk_gloss && <span className="text-muted" style={{ marginLeft: '0.35em', fontSize: '0.8em' }}>· {c.uk_gloss}</span>}
             </button>
           ))}
