@@ -5,10 +5,11 @@ import { TranslationRow } from '../components/TranslationRow'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
 import { VerbFormData } from '../utils/gorohParser'
-import { Tag, Chunk, LexemeTranslation, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
+import { Tag, Chunk, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
 import { aspectBg } from '../utils/theme'
 import { gorohUrl } from '../config'
 import { TagChip } from '../widgets/TagChip'
+import { useTranslations } from '../hooks/useTranslations'
 
 export default function PairPage() {
   const { id } = useParams<{ id: string }>()
@@ -25,22 +26,21 @@ export default function PairPage() {
   const [fetchingCorpus, setFetchingCorpus] = useState<string | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
-  const [langs, setLangs] = useState<string[]>([])
-  const [translations, setTranslations] = useState<LexemeTranslation[]>([])
   const [wordFamilies, setWordFamilies] = useState<WordFamily[]>([])
+  const { langs, translations, addTranslation, updateTranslation, deleteTranslation } = useTranslations(
+    pair?.lexeme_id?.toString()
+  )
 
   useEffect(() => {
     api.get<AspectPair>(`/aspect-pairs/${pairId}`).then(async p => {
       setPair(p)
-      const [ipf, pf, ts, cks, corp, freqs, ls, trs] = await Promise.all([
+      const [ipf, pf, ts, cks, corp, freqs] = await Promise.all([
         p.ipf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.ipf_verb_id}/forms`) : Promise.resolve([]),
         p.pf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.pf_verb_id}/forms`) : Promise.resolve([]),
         api.get<Tag[]>(`/pairs/${pairId}/tags`),
         api.get<Chunk[]>(`/pairs/${pairId}/chunks`),
         api.get<string[]>('/corpora'),
         api.get<VerbFrequency[]>(`/pairs/${pairId}/frequencies`),
-        api.get<string[]>('/languages'),
-        p.lexeme_id != null ? api.get<LexemeTranslation[]>(`/lexemes/${p.lexeme_id}/translations`) : Promise.resolve([]),
       ])
       setIpfForms(ipf)
       setPfForms(pf)
@@ -48,8 +48,6 @@ export default function PairPage() {
       setChunks(cks)
       setCorpora(corp)
       setFrequencies(freqs)
-      setLangs(ls)
-      setTranslations(trs)
       setWordFamilies(await api.get<WordFamily[]>(`/pairs/${pairId}/word-families`))
     })
   }, [pairId])
@@ -71,22 +69,6 @@ export default function PairPage() {
     } finally {
       setFetchingCorpus(null)
     }
-  }
-
-  async function addTranslation(lang: string, text: string) {
-    if (!pair?.lexeme_id) return
-    const t = await api.post<LexemeTranslation>(`/lexemes/${pair.lexeme_id}/translations`, { lang, text })
-    setTranslations(prev => [...prev, t])
-  }
-
-  async function updateTranslation(id: number, text: string) {
-    const t = await api.put<LexemeTranslation>(`/lexeme-translations/${id}`, { text })
-    setTranslations(prev => prev.map(x => x.id === id ? t : x))
-  }
-
-  async function deleteTranslation(id: number) {
-    await api.delete(`/lexeme-translations/${id}`)
-    setTranslations(prev => prev.filter(x => x.id !== id))
   }
 
   async function createFamilyWithPair() {
