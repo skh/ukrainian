@@ -60,6 +60,7 @@ export default function WordPage() {
               key={lang}
               lang={lang}
               items={translations.filter(t => t.lang === lang)}
+              searchWord={word?.lemma}
               onAdd={text => addTranslation(lang, text)}
               onUpdate={(tid, text) => updateTranslation(tid, text)}
               onDelete={tid => deleteTranslation(tid)}

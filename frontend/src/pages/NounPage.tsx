@@ -102,6 +102,7 @@ export default function NounPage() {
               key={lang}
               lang={lang}
               items={translations.filter(t => t.lang === lang)}
+              searchWord={noun.lemma}
               onAdd={text => addTranslation(lang, text)}
               onUpdate={(tid, text) => updateTranslation(tid, text)}
               onDelete={tid => deleteTranslation(tid)}

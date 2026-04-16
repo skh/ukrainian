@@ -122,6 +122,7 @@ export default function PairPage() {
               key={lang}
               lang={lang}
               items={translations.filter(t => t.lang === lang)}
+              searchWord={pair.ipf_verb?.infinitive ?? pair.pf_verb?.infinitive}
               onAdd={text => addTranslation(lang, text)}
               onUpdate={(id, text) => updateTranslation(id, text)}
               onDelete={id => deleteTranslation(id)}

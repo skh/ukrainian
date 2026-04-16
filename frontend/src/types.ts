@@ -156,6 +156,15 @@ export interface GorohCandidate {
   existing_id: number | null
 }
 
+export interface VerbformenCandidate {
+  german: string
+  article: string | null
+  cefr: string | null
+  pos: string | null
+  uk_gloss: string | null
+  definition: string | null
+}
+
 export type DerivationType = 'prefix' | 'suffix' | 'stem_change' | 'stress_change' | 'reflexive'
 
 export interface VerbFormRead {
