@@ -1,3 +1,5 @@
+export const FREQ_CORPUS = 'preloaded/uktenten22_rft2'
+
 export const externalLinks = {
   gorohBase: 'https://goroh.pp.ua/Словозміна/',
 }

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 const DICTIONARY_PATHS = ['/', '/nouns', '/adjectives', '/pronouns', '/numerals', '/words']
 
 const NAV_ITEMS = [
-  { label: 'Dictionary', path: '/' },
+  { label: 'Dictionary', path: '/words' },
   { label: 'Quick add',  path: '/quick-add' },
   { label: 'Drills',     path: '/drill' },
   { label: 'Analyze',    path: '/analyze' },
@@ -18,7 +18,7 @@ export function Nav() {
   return (
     <nav style={{ marginBottom: '1rem', display: 'flex', gap: '0.15rem' }}>
       {NAV_ITEMS.map(item => {
-        const active = item.path === '/'
+        const active = item.label === 'Dictionary'
           ? inDictionary
           : pathname.startsWith(item.path)
         return (

@@ -28,6 +28,14 @@ export interface VerbFrequency {
   fetched_at: string
 }
 
+export interface LexemeFrequency {
+  id: number
+  lexeme_id: number
+  corpus: string
+  ipm: number
+  fetched_at: string
+}
+
 export interface LexemeTranslation {
   id: number
   lexeme_id: number

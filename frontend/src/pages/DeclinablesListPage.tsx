@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { Entry, LexemeTranslation } from '../types'
+import { Entry, LexemeTranslation, LexemeFrequency } from '../types'
 import { Nav } from '../components/Nav'
 import { DictionaryTabs } from '../components/DictionaryTabs'
 import { Pagination } from '../components/Pagination'
 import { genderBg } from '../utils/nouns'
 import { stripAccent } from '../utils/forms'
+import { FREQ_CORPUS } from '../config'
 
 type DeclinablePos = 'adjective' | 'pronoun' | 'numeral'
 
@@ -24,18 +25,31 @@ export default function DeclinablesListPage({ pos }: Props) {
   const plural = `${pos}s`
   const [items, setItems] = useState<Entry[]>([])
   const [deByLexeme, setDeByLexeme] = useState<Map<number, string>>(new Map())
+  const [ipmByLexeme, setIpmByLexeme] = useState<Map<number, number>>(new Map())
   const [filter, setFilter] = useState('')
+  const [sortKey, setSortKey] = useState<'lemma' | 'ipm'>('lemma')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+
+  function handleSort(key: 'lemma' | 'ipm') {
+    if (key === sortKey) { setSortDir(d => d === 'asc' ? 'desc' : 'asc') }
+    else { setSortKey(key); setSortDir(key === 'ipm' ? 'desc' : 'asc') }
+    setPage(0)
+  }
 
   useEffect(() => {
     Promise.all([
       api.get<Entry[]>(`/${plural}`),
       api.get<LexemeTranslation[]>('/lexeme-translations'),
-    ]).then(([items, trs]) => {
+      api.get<LexemeFrequency[]>('/lexeme-frequencies'),
+    ]).then(([items, trs, freqs]) => {
       setItems(items)
       setDeByLexeme(new Map(
         trs.filter(t => t.lang === 'de').map(t => [t.lexeme_id, t.text])
+      ))
+      setIpmByLexeme(new Map(
+        freqs.filter(f => f.corpus === FREQ_CORPUS).map(f => [f.lexeme_id, f.ipm])
       ))
     })
   }, [plural])
@@ -43,7 +57,17 @@ export default function DeclinablesListPage({ pos }: Props) {
   const q = stripAccent(filter.toLowerCase())
   const filtered = items
     .filter(n => !q || stripAccent(n.accented).toLowerCase().includes(q))
-    .sort((a, b) => stripAccent(a.accented).localeCompare(stripAccent(b.accented), 'uk'))
+    .sort((a, b) => {
+      let cmp: number
+      if (sortKey === 'ipm') {
+        const ai = ipmByLexeme.get(a.id) ?? -Infinity
+        const bi = ipmByLexeme.get(b.id) ?? -Infinity
+        cmp = ai - bi
+      } else {
+        cmp = stripAccent(a.accented).localeCompare(stripAccent(b.accented), 'uk')
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const clampedPage = Math.min(page, Math.max(0, totalPages - 1))
@@ -69,9 +93,14 @@ export default function DeclinablesListPage({ pos }: Props) {
           <thead>
             <tr>
               <th className="col-mobile-hide"></th>
-              <th>{POS_TITLE[pos].slice(0, -1)}</th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('lemma')}>
+                {POS_TITLE[pos].slice(0, -1)} {sortKey === 'lemma' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
               {pos === 'adjective' && <th>Gender</th>}
               <th>de</th>
+              <th className="col-mobile-hide" style={{ cursor: 'pointer', userSelect: 'none', fontWeight: 'normal', fontSize: '0.85em' }} onClick={() => handleSort('ipm')}>
+                ipm ({FREQ_CORPUS}) {sortKey === 'ipm' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -91,6 +120,9 @@ export default function DeclinablesListPage({ pos }: Props) {
                   </td>
                 )}
                 <td className="text-dim" style={{ fontSize: '0.85em' }}>{deByLexeme.get(n.id) ?? ''}</td>
+                <td className="col-mobile-hide text-dim" style={{ fontSize: '0.8em' }}>
+                  {ipmByLexeme.has(n.id) ? ipmByLexeme.get(n.id)!.toFixed(2) : '—'}
+                </td>
               </tr>
             ))}
           </tbody>

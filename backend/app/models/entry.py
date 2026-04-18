@@ -1,4 +1,6 @@
-from sqlalchemy import CheckConstraint, Column, ForeignKey, Integer, String
+from datetime import datetime
+
+from sqlalchemy import CheckConstraint, Column, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -49,6 +51,20 @@ class LexemeForm(Base):
             "(lexeme_id IS NOT NULL AND verb_id IS NULL) OR (lexeme_id IS NULL AND verb_id IS NOT NULL)",
             name="ck_lexeme_forms_one_parent",
         ),
+    )
+
+
+class LexemeFrequency(Base):
+    __tablename__ = "lexeme_frequencies"
+
+    id = Column(Integer, primary_key=True)
+    lexeme_id = Column(Integer, ForeignKey("lexemes.id", ondelete="CASCADE"), nullable=False)
+    corpus = Column(String, nullable=False)
+    ipm = Column(Float, nullable=False)
+    fetched_at = Column(DateTime, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("lexeme_id", "corpus", name="uq_lexeme_frequencies"),
     )
 
 

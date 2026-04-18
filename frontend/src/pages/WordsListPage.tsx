@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { Lexeme, LexemeTranslation } from '../types'
+import { Lexeme, LexemeTranslation, LexemeFrequency, VerbFrequency } from '../types'
 import { Nav } from '../components/Nav'
 import { DictionaryTabs } from '../components/DictionaryTabs'
 import { Pagination } from '../components/Pagination'
 import { genderBg } from '../utils/nouns'
 import { aspectBg } from '../utils/theme'
 import { stripAccent } from '../utils/forms'
+import { FREQ_CORPUS } from '../config'
 
 const posBg: Record<string, string> = {
   noun:        '#d1fae5',
@@ -52,26 +53,63 @@ function entryText(e: Lexeme): string {
 export default function WordsListPage() {
   const [entries, setEntries] = useState<Lexeme[]>([])
   const [deByLexeme, setDeByLexeme] = useState<Map<number, string>>(new Map())
+  const [ipmByLexeme, setIpmByLexeme] = useState<Map<number, number>>(new Map())
+  const [verbIpmByVerbId, setVerbIpmByVerbId] = useState<Map<number, number>>(new Map())
   const [filter, setFilter] = useState('')
+  const [sortKey, setSortKey] = useState<'lemma' | 'ipm'>('lemma')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+
+  function handleSort(key: 'lemma' | 'ipm') {
+    if (key === sortKey) { setSortDir(d => d === 'asc' ? 'desc' : 'asc') }
+    else { setSortKey(key); setSortDir(key === 'ipm' ? 'desc' : 'asc') }
+    setPage(0)
+  }
 
   useEffect(() => {
     Promise.all([
       api.get<Lexeme[]>('/words'),
       api.get<LexemeTranslation[]>('/lexeme-translations'),
-    ]).then(([es, trs]) => {
+      api.get<LexemeFrequency[]>('/lexeme-frequencies'),
+      api.get<VerbFrequency[]>('/frequencies'),
+    ]).then(([es, trs, freqs, verbFreqs]) => {
       setEntries(es)
       setDeByLexeme(new Map(
         trs.filter(t => t.lang === 'de').map(t => [t.lexeme_id, t.text])
       ))
+      setIpmByLexeme(new Map(
+        freqs.filter(f => f.corpus === FREQ_CORPUS).map(f => [f.lexeme_id, f.ipm])
+      ))
+      setVerbIpmByVerbId(new Map(
+        verbFreqs.filter(f => f.corpus === FREQ_CORPUS).map(f => [f.verb_id, f.ipm])
+      ))
     })
   }, [])
+
+  function entryIpm(e: Lexeme): number | undefined {
+    if (e.pos === 'pair' && e.pair) {
+      const total = (verbIpmByVerbId.get(e.pair.ipf_verb_id ?? -1) ?? 0)
+                  + (verbIpmByVerbId.get(e.pair.pf_verb_id ?? -1) ?? 0)
+      return total > 0 ? total : undefined
+    }
+    return ipmByLexeme.get(e.id)
+  }
 
   const q = stripAccent(filter.toLowerCase())
   const filtered = entries
     .filter(e => !q || stripAccent(entryText(e)).toLowerCase().includes(q))
-    .sort((a, b) => stripAccent(entryText(a)).localeCompare(stripAccent(entryText(b)), 'uk'))
+    .sort((a, b) => {
+      let cmp: number
+      if (sortKey === 'ipm') {
+        const ai = entryIpm(a) ?? -Infinity
+        const bi = entryIpm(b) ?? -Infinity
+        cmp = ai - bi
+      } else {
+        cmp = stripAccent(entryText(a)).localeCompare(stripAccent(entryText(b)), 'uk')
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const clampedPage = Math.min(page, Math.max(0, totalPages - 1))
@@ -105,10 +143,15 @@ export default function WordsListPage() {
           <thead>
             <tr>
               <th className="col-mobile-hide"></th>
-              <th>Word</th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('lemma')}>
+                Word {sortKey === 'lemma' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
               <th>POS</th>
               <th>Info</th>
               <th>de</th>
+              <th className="col-mobile-hide" style={{ cursor: 'pointer', userSelect: 'none', fontWeight: 'normal', fontSize: '0.85em' }} onClick={() => handleSort('ipm')}>
+                ipm ({FREQ_CORPUS}) {sortKey === 'ipm' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -117,11 +160,9 @@ export default function WordsListPage() {
                 <td className="col-mobile-hide" style={{ color: '#bbb', fontSize: '0.8em', textAlign: 'right', paddingRight: '0.5em' }}>{clampedPage * pageSize + i + 1}</td>
                 <td><Link to={entryPath(e)}>{entryLabel(e)}</Link></td>
                 <td>
-                  {e.pos !== 'pair' && (
-                    <span className="badge" style={{ background: posBg[e.pos] ?? '#eee' }}>
-                      {e.pos}
-                    </span>
-                  )}
+                  <span className="badge" style={{ background: e.pos === 'pair' ? '#dbeafe' : (posBg[e.pos] ?? '#eee') }}>
+                    {e.pos === 'pair' ? 'verb' : e.pos}
+                  </span>
                 </td>
                 <td className="text-dim">
                   {e.pos === 'noun' && (
@@ -138,6 +179,9 @@ export default function WordsListPage() {
                   )}
                 </td>
                 <td className="text-dim" style={{ fontSize: '0.85em' }}>{deByLexeme.get(e.id) ?? ''}</td>
+                <td className="col-mobile-hide text-dim" style={{ fontSize: '0.8em' }}>
+                  {entryIpm(e) != null ? entryIpm(e)!.toFixed(2) : '—'}
+                </td>
               </tr>
             ))}
           </tbody>

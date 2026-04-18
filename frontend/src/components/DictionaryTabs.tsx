@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 
 const TABS = [
+  { label: 'All',        path: '/words' },
   { label: 'Verbs',      path: '/' },
   { label: 'Nouns',      path: '/nouns' },
   { label: 'Adjectives', path: '/adjectives' },
   { label: 'Pronouns',   path: '/pronouns' },
   { label: 'Numerals',   path: '/numerals' },
-  { label: 'All',        path: '/words' },
 ]
 
 export function DictionaryTabs() {

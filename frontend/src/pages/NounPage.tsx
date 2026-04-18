@@ -7,6 +7,7 @@ import { Nav } from '../components/Nav'
 import { TranslationRow } from '../components/TranslationRow'
 import { useTranslations } from '../hooks/useTranslations'
 import { CASE_LABELS, CASES, genderBg } from '../utils/nouns'
+import { FrequencySection } from '../components/FrequencySection'
 
 export default function NounPage() {
   const { id } = useParams<{ id: string }>()
@@ -180,6 +181,8 @@ export default function NounPage() {
         </button>
         {parseError && <span className="text-danger" style={{ marginLeft: '0.5em' }}>{parseError}</span>}
       </div>
+
+      {id && <FrequencySection lexemeId={Number(id)} />}
 
       <div style={{ marginTop: '2rem' }}>
         {deleteError && <p className="text-danger">{deleteError}</p>}

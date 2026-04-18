@@ -1,28 +1,41 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { Entry, LexemeTranslation } from '../types'
+import { Entry, LexemeTranslation, LexemeFrequency } from '../types'
 import { Nav } from '../components/Nav'
 import { DictionaryTabs } from '../components/DictionaryTabs'
 import { Pagination } from '../components/Pagination'
 import { genderBg } from '../utils/nouns'
 import { stripAccent } from '../utils/forms'
-
+import { FREQ_CORPUS } from '../config'
 export default function NounsListPage() {
   const [nouns, setNouns] = useState<Entry[]>([])
   const [deByLexeme, setDeByLexeme] = useState<Map<number, string>>(new Map())
+  const [ipmByLexeme, setIpmByLexeme] = useState<Map<number, number>>(new Map())
   const [filter, setFilter] = useState('')
+  const [sortKey, setSortKey] = useState<'lemma' | 'ipm'>('lemma')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+
+  function handleSort(key: 'lemma' | 'ipm') {
+    if (key === sortKey) { setSortDir(d => d === 'asc' ? 'desc' : 'asc') }
+    else { setSortKey(key); setSortDir(key === 'ipm' ? 'desc' : 'asc') }
+    setPage(0)
+  }
 
   useEffect(() => {
     Promise.all([
       api.get<Entry[]>('/nouns'),
       api.get<LexemeTranslation[]>('/lexeme-translations'),
-    ]).then(([ns, trs]) => {
+      api.get<LexemeFrequency[]>('/lexeme-frequencies'),
+    ]).then(([ns, trs, freqs]) => {
       setNouns(ns)
       setDeByLexeme(new Map(
         trs.filter(t => t.lang === 'de').map(t => [t.lexeme_id, t.text])
+      ))
+      setIpmByLexeme(new Map(
+        freqs.filter(f => f.corpus === FREQ_CORPUS).map(f => [f.lexeme_id, f.ipm])
       ))
     })
   }, [])
@@ -30,7 +43,17 @@ export default function NounsListPage() {
   const q = stripAccent(filter.toLowerCase())
   const filtered = nouns
     .filter(n => !q || stripAccent(n.accented).toLowerCase().includes(q))
-    .sort((a, b) => stripAccent(a.accented).localeCompare(stripAccent(b.accented), 'uk'))
+    .sort((a, b) => {
+      let cmp: number
+      if (sortKey === 'ipm') {
+        const ai = ipmByLexeme.get(a.id) ?? -Infinity
+        const bi = ipmByLexeme.get(b.id) ?? -Infinity
+        cmp = ai - bi
+      } else {
+        cmp = stripAccent(a.accented).localeCompare(stripAccent(b.accented), 'uk')
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const clampedPage = Math.min(page, Math.max(0, totalPages - 1))
@@ -56,10 +79,15 @@ export default function NounsListPage() {
           <thead>
             <tr>
               <th className="col-mobile-hide"></th>
-              <th>Noun</th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('lemma')}>
+                Noun {sortKey === 'lemma' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
               <th>Gender</th>
               <th>Number</th>
               <th>de</th>
+              <th className="col-mobile-hide" style={{ cursor: 'pointer', userSelect: 'none', fontWeight: 'normal', fontSize: '0.85em' }} onClick={() => handleSort('ipm')}>
+                ipm ({FREQ_CORPUS}) {sortKey === 'ipm' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -80,6 +108,9 @@ export default function NounsListPage() {
                 </td>
                 <td className="text-secondary" style={{ fontSize: '0.85em' }}>{n.number_type ?? ''}</td>
                 <td className="text-dim" style={{ fontSize: '0.85em' }}>{deByLexeme.get(n.id) ?? ''}</td>
+                <td className="col-mobile-hide text-dim" style={{ fontSize: '0.8em' }}>
+                  {ipmByLexeme.has(n.id) ? ipmByLexeme.get(n.id)!.toFixed(2) : '—'}
+                </td>
               </tr>
             ))}
           </tbody>

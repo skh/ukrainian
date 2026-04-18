@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 from app.crud import get_or_404
 from app.database import get_db
 from app.models.verb import AspectPair, Verb, VerbFrequency
+from app.models.entry import Lexeme, LexemeFrequency
 from app import sketchengine
-from app.schemas.frequency import FrequencyRead
+from app.schemas.frequency import FrequencyRead, LexemeFrequencyRead
 from app.utils import strip_accent
 
 router = APIRouter(tags=["frequencies"])
@@ -75,3 +76,48 @@ def fetch_pair_frequency(pair_id: int, corpus: str, db: Session = Depends(get_db
     for r in results:
         db.refresh(r)
     return results
+
+
+@router.get("/api/lexeme-frequencies", response_model=list[LexemeFrequencyRead])
+def get_all_lexeme_frequencies(db: Session = Depends(get_db)):
+    return db.execute(select(LexemeFrequency)).scalars().all()
+
+
+@router.get("/api/lexemes/{lexeme_id}/frequencies", response_model=list[LexemeFrequencyRead])
+def get_lexeme_frequencies(lexeme_id: int, db: Session = Depends(get_db)):
+    get_or_404(db, Lexeme, lexeme_id)
+    return db.execute(
+        select(LexemeFrequency).where(LexemeFrequency.lexeme_id == lexeme_id)
+        .order_by(LexemeFrequency.corpus)
+    ).scalars().all()
+
+
+@router.post("/api/lexemes/{lexeme_id}/fetch-frequency", response_model=LexemeFrequencyRead)
+def fetch_lexeme_frequency(lexeme_id: int, corpus: str, db: Session = Depends(get_db)):
+    lex = get_or_404(db, Lexeme, lexeme_id)
+
+    if corpus not in sketchengine.configured_corpora():
+        raise HTTPException(status_code=400, detail=f"Unknown corpus: {corpus}")
+
+    try:
+        ipm = sketchengine.fetch_ipm(corpus, lex.lemma)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Sketch Engine error: {e}")
+
+    now = datetime.now(timezone.utc)
+    row = db.execute(
+        select(LexemeFrequency).where(
+            LexemeFrequency.lexeme_id == lexeme_id,
+            LexemeFrequency.corpus == corpus,
+        )
+    ).scalar_one_or_none()
+    if row:
+        row.ipm = ipm
+        row.fetched_at = now
+    else:
+        row = LexemeFrequency(lexeme_id=lexeme_id, corpus=corpus, ipm=ipm, fetched_at=now)
+        db.add(row)
+
+    db.commit()
+    db.refresh(row)
+    return row

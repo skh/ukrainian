@@ -10,6 +10,7 @@ import { tagColor } from '../widgets/tagColor'
 import { Nav } from '../components/Nav'
 import { Pagination } from '../components/Pagination'
 import { DictionaryTabs } from '../components/DictionaryTabs'
+import { FREQ_CORPUS } from '../config'
 
 export default function VerbListPage() {
   const navigate = useNavigate()
@@ -85,9 +86,11 @@ export default function VerbListPage() {
     setPage(0)
   }
 
+  const displayCorpora = corpora.filter(c => c === FREQ_CORPUS)
+
   // Rank all fetched pairs per corpus (descending ipm). Unfetched pairs → no entry.
   const pairRanks = new Map<string, number>()
-  for (const corpus of corpora) {
+  for (const corpus of displayCorpora) {
     const fetched = pairs
       .map(p => {
         const ipf = p.ipf_verb_id != null ? allFrequencies.find(f => f.verb_id === p.ipf_verb_id && f.corpus === corpus) : undefined
@@ -222,15 +225,15 @@ export default function VerbListPage() {
             </th>
             <th className="text-muted" style={{ fontWeight: 'normal', fontSize: '0.85em' }}>DE</th>
             <th className="col-mobile-hide">Tags</th>
-            {corpora.length > 0 && (
+            {displayCorpora.length > 0 && (
               <th className="col-mobile-hide">
-                {corpora.map(corpus => (
+                {displayCorpora.map(corpus => (
                   <span
                     key={corpus}
                     onClick={() => handleSort(corpus)}
                     style={{ cursor: 'pointer', userSelect: 'none', marginRight: '0.5em', whiteSpace: 'nowrap' }}
                   >
-                    {corpus.split('/').slice(-1)[0]}{sortKey === corpus ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                    ipm ({corpus}){sortKey === corpus ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
                   </span>
                 ))}
               </th>
@@ -284,12 +287,12 @@ export default function VerbListPage() {
                   />
                 </div>
               </td>
-              {corpora.length > 0 && (() => {
-                const slots = corpora.map(corpus => corpusSlot(p, corpus))
+              {displayCorpora.length > 0 && (() => {
+                const slots = displayCorpora.map(corpus => corpusSlot(p, corpus))
                 const hasAny = slots.some(s => s.text !== '—')
                 return (
                   <td className="col-mobile-hide" style={{ fontSize: '0.8em', whiteSpace: 'nowrap' }}
-                      title={corpora.map((c, i) => `${c}: ${slots[i].text}`).join('\n')}>
+                      title={displayCorpora.map((c, i) => `${c}: ${slots[i].text}`).join('\n')}>
                     {hasAny && (
                       <>
                         {'('}
@@ -318,7 +321,7 @@ export default function VerbListPage() {
         onPageSizeChange={setPageSize}
       />
 
-      {corpora.length > 0 && (() => {
+      {displayCorpora.length > 0 && (() => {
         const verbIdsWithFreq = new Set(allFrequencies.map(f => f.verb_id))
         const noFreqPairs = pairs.filter(p =>
           (p.ipf_verb_id == null || !verbIdsWithFreq.has(p.ipf_verb_id)) &&

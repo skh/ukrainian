@@ -5,6 +5,7 @@ import { Entry } from '../types'
 import { Nav } from '../components/Nav'
 import { TranslationRow } from '../components/TranslationRow'
 import { useTranslations } from '../hooks/useTranslations'
+import { FrequencySection } from '../components/FrequencySection'
 
 export default function WordPage() {
   const { id } = useParams<{ id: string }>()
@@ -82,6 +83,8 @@ export default function WordPage() {
         <button type="submit">Save</button>
         {saved && <span style={{ marginLeft: '0.5em', color: 'green' }}>Saved</span>}
       </form>
+
+      {id && <FrequencySection lexemeId={Number(id)} />}
 
       <div style={{ marginTop: '2rem' }}>
         {!confirming
