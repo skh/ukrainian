@@ -190,7 +190,7 @@ def _parse_verb_table(table) -> list[GorohForm]:
                     past_genders_seen = set()
             continue
 
-        if "column-header" in row_classes or not current_tense:
+        if "column-header" in row_classes:
             continue
 
         header_cell = row.find("td", class_="header")
@@ -199,6 +199,14 @@ def _parse_verb_table(table) -> list[GorohForm]:
         row_label = header_cell.get_text(strip=True)
 
         form_cells = [c for c in row.find_all("td", class_="cell") if "header" not in c.get("class", [])]
+
+        if row_label == "Інфінітив":
+            for f in (_cell_forms(form_cells[0]) if form_cells else []):
+                forms.append(GorohForm(tags="infinitive", form=f))
+            continue
+
+        if not current_tense:
+            continue
 
         if current_tense == "past":
             gender = _PAST_GENDER_MAP.get(row_label)
@@ -265,6 +273,12 @@ def _parse_article(block, db: Session) -> GorohCandidate | None:
     if table:
         if pos == "verb":
             forms = _parse_verb_table(table)
+            # Use the parsed infinitive (already filtered to prefer -ся over -сь)
+            # as the canonical accented form instead of the h2 headword.
+            inf = next((f.form for f in forms if f.tags == "infinitive"), None)
+            if inf:
+                accented = inf
+            forms = [f for f in forms if f.tags != "infinitive"]
         else:
             forms, number_type = _parse_declinable_table(table, pos)
 
