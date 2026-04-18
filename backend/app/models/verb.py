@@ -26,7 +26,10 @@ class Verb(Base):
     accented = Column(String, nullable=False, unique=True)
     aspect = Column(String, nullable=False)
 
+    variant_of = Column(Integer, ForeignKey("verbs.id"), nullable=True)
+
     forms = relationship("LexemeForm", foreign_keys="[LexemeForm.verb_id]", cascade="all, delete-orphan")
+    canonical = relationship("Verb", foreign_keys=[variant_of], remote_side="[Verb.id]")
 
     __table_args__ = (
         CheckConstraint("aspect IN ('ipf', 'pf')", name="ck_verbs_aspect"),

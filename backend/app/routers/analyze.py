@@ -87,6 +87,11 @@ def _build_lookup(db: Session) -> dict[str, Lexeme]:
             if pair.pf_verb_id:
                 verb_to_pair[pair.pf_verb_id] = lex
 
+    # Variant verbs share their canonical verb's pair lexeme
+    for v in db.execute(select(Verb).where(Verb.variant_of.isnot(None))).scalars().all():
+        if v.variant_of in verb_to_pair:
+            verb_to_pair[v.id] = verb_to_pair[v.variant_of]
+
     for lf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
         key = normalize(lf.form)
         if key not in lookup and lf.verb_id in verb_to_pair:

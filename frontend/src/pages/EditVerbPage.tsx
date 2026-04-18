@@ -32,6 +32,7 @@ export default function EditVerbPage() {
 const [editInfinitive, setEditInfinitive] = useState('')
   const [editAccented, setEditAccented] = useState('')
   const [editAspect, setEditAspect] = useState<'ipf' | 'pf'>('ipf')
+  const [variantOfInput, setVariantOfInput] = useState('')
   const [message, setMessage] = useState('')
 
   async function load() {
@@ -47,6 +48,8 @@ const [editInfinitive, setEditInfinitive] = useState('')
       setEditInfinitive(found.infinitive)
       setEditAccented(found.accented)
       setEditAspect(found.aspect)
+      const canonical = verbs.find(v => v.id === found.variant_of)
+      setVariantOfInput(canonical?.accented ?? '')
     }
     setAllVerbs(verbs.filter(v => v.id !== verbId))
     setPairs(allPairs.filter(p => p.ipf_verb_id === verbId || p.pf_verb_id === verbId))
@@ -195,6 +198,20 @@ async function editForm(id: number, value: string) {
     }
   }
 
+  async function saveVariantOf() {
+    const canonical = variantOfInput
+      ? allVerbs.find(v => v.accented === variantOfInput || stripAccent(v.accented) === stripAccent(variantOfInput))
+      : null
+    if (variantOfInput && !canonical) { setMessage('Verb not found — select from the list.'); return }
+    try {
+      await api.put(`/verbs/${verbId}`, { variant_of: canonical?.id ?? null })
+      setMessage('Saved.')
+      await load()
+    } catch (err) {
+      setMessage(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    }
+  }
+
   async function deleteVerb() {
     if (!verb || !confirm(`Delete "${verb.accented}"? This will also remove its aspect pairs and derivations.`)) return
     try {
@@ -237,6 +254,34 @@ async function editForm(id: number, value: string) {
       </label>
       <br /><br />
       <button className="btn-primary" onClick={saveVerb}>Save</button>
+
+      <h2>Variant of</h2>
+      <p className="text-muted" style={{ fontSize: '0.9em', margin: '0 0 0.5rem' }}>
+        Set if this verb is a stem variant of another verb with the same meaning
+        (e.g. притягати as variant of притягувати). Variants share the canonical verb's aspect pair.
+      </p>
+      <input
+        list="variant-list"
+        value={variantOfInput}
+        onChange={e => setVariantOfInput(e.target.value)}
+        placeholder="Type to search…"
+        style={{ width: '16rem' }}
+      />
+      <datalist id="variant-list">
+        {allVerbs.filter(v => v.aspect === verb.aspect).flatMap(v => [
+          <option key={v.id} value={v.accented} />,
+          <option key={`${v.id}-plain`} value={stripAccent(v.accented)} />,
+        ])}
+      </datalist>
+      {' '}<button onClick={saveVariantOf}>Save</button>
+      {variantOfInput && (
+        <>{' '}<button onClick={async () => {
+          setVariantOfInput('')
+          await api.put(`/verbs/${verbId}`, { variant_of: null })
+          setMessage('Saved.')
+          await load()
+        }}>Clear</button></>
+      )}
 
       <h2>Aspect partners</h2>
       {pairs.length === 0

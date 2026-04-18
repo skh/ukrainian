@@ -3,6 +3,7 @@ export interface Verb {
   infinitive: string
   accented: string
   aspect: 'ipf' | 'pf'
+  variant_of: number | null
 }
 
 export interface Tag {

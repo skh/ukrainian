@@ -32,7 +32,7 @@ def create_verb(data: VerbCreate, db: Session = Depends(get_db)):
 @router.put("/{verb_id}", response_model=VerbRead)
 def update_verb(verb_id: int, data: VerbUpdate, db: Session = Depends(get_db)):
     verb = get_or_404(db, Verb, verb_id)
-    for key, value in data.model_dump(exclude_none=True).items():
+    for key, value in data.model_dump(exclude_unset=True).items():
         setattr(verb, key, value)
     db.commit()
     db.refresh(verb)
