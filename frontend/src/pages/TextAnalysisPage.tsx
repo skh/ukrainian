@@ -132,7 +132,14 @@ export default function TextAnalysisPage() {
           }}>
             {tokens.map((tok, i) => {
               if (!tok.match) {
-                return <span key={i}>{tok.text}</span>
+                const norm = tok.text.toLowerCase().replace(/\u0301/g, '').replace(/['\u2019\u02BC]/g, '\u2019')
+                const isActive = activeWord !== null && norm === activeWord
+                if (!isActive) return <span key={i}>{tok.text}</span>
+                return (
+                  <span key={i} style={{ background: '#fde68a', borderRadius: '3px', padding: '0.05em 0.1em' }}>
+                    {tok.text}
+                  </span>
+                )
               }
               return (
                 <span

@@ -97,8 +97,6 @@ class GorohCandidate(BaseModel):
 def _cell_forms(cell) -> list[str]:
     result = []
     for span in cell.find_all("span", class_="word"):
-        if "alternative-spelling" in span.get("class", []):
-            continue
         if span.get("title", "") in _SKIP_TITLES:
             continue
         text = span.get_text(strip=True)
