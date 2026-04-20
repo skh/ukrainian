@@ -23,6 +23,7 @@ const posBg: Record<string, string> = {
   numeral:     '#ffedd5',
   preposition: '#e0f2fe',
   pronoun:     '#fae8ff',
+  particle:    '#fef3c7',
   pair:        '#ffffff',
 }
 

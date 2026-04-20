@@ -8,7 +8,7 @@ from app.schemas.entry import LexemeRead
 class WFLexemeCreate(BaseModel):
     """Schema for creating a new lexeme directly within a word family."""
     accented: str
-    pos: Literal["noun", "adjective", "adverb", "conjunction", "numeral", "preposition", "pronoun"]
+    pos: Literal["noun", "adjective", "adverb", "conjunction", "numeral", "preposition", "pronoun", "particle"]
 
 
 class WordFamilyRead(BaseModel):

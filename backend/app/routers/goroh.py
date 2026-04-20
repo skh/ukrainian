@@ -32,6 +32,7 @@ _POS_MAP = {
     "прислівник": "adverb",
     "прийменник": "preposition",
     "сполучник": "conjunction",
+    "частка": "particle",
 }
 
 _GENDER_MAP = {

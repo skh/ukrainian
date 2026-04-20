@@ -96,7 +96,7 @@ export interface LexemeForm {
 
 export interface Lexeme {
   id: number
-  pos: 'pair' | 'noun' | 'adjective' | 'adverb' | 'conjunction' | 'numeral' | 'preposition' | 'pronoun'
+  pos: 'pair' | 'noun' | 'adjective' | 'adverb' | 'conjunction' | 'numeral' | 'preposition' | 'pronoun' | 'particle'
   lemma: string
   accented: string
   gender: 'm' | 'f' | 'n' | null

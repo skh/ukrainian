@@ -27,7 +27,7 @@ class Lexeme(Base):
     pair = relationship("AspectPair", back_populates="lexeme")
 
     __table_args__ = (
-        CheckConstraint("pos IN ('pair', 'noun', 'adjective', 'adverb', 'conjunction', 'numeral', 'preposition', 'pronoun')", name="ck_lexemes_pos"),
+        CheckConstraint("pos IN ('pair', 'noun', 'adjective', 'adverb', 'conjunction', 'numeral', 'preposition', 'pronoun', 'particle')", name="ck_lexemes_pos"),
         CheckConstraint("gender IN ('m', 'f', 'n') OR gender IS NULL", name="ck_lexemes_gender"),
         CheckConstraint("number_type IN ('sg', 'pl', 'both') OR number_type IS NULL", name="ck_lexemes_number_type"),
     )

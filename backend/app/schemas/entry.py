@@ -27,7 +27,7 @@ class LexemeCreate(BaseModel):
 
 
 class WordCreate(BaseModel):
-    pos: Literal['conjunction', 'preposition', 'adverb']
+    pos: Literal['conjunction', 'preposition', 'adverb', 'particle']
     accented: str
 
 
