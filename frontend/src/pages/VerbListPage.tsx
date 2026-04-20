@@ -69,7 +69,7 @@ export default function VerbListPage() {
   }
 
   const pairedIds = new Set(pairs.flatMap(p => [p.ipf_verb_id, p.pf_verb_id].filter((id): id is number => id !== null)))
-  const unpairedVerbs = verbs.filter(v => !pairedIds.has(v.id))
+  const unpairedVerbs = verbs.filter(v => !pairedIds.has(v.id) && v.variant_of === null)
 
   const q = stripAccent(filter.toLowerCase())
 
