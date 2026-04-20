@@ -11,6 +11,7 @@ import { Nav } from '../components/Nav'
 import { Pagination } from '../components/Pagination'
 import { DictionaryTabs } from '../components/DictionaryTabs'
 import { FREQ_CORPUS } from '../config'
+import { CEFR_LEVELS, CefrLevel, cefrColor, cefrTextColor, cefrOrder, lowerCefrLevel } from '../utils/cefr'
 
 export default function VerbListPage() {
   const navigate = useNavigate()
@@ -20,31 +21,32 @@ export default function VerbListPage() {
   const [pairTags, setPairTags] = useState<PairTag[]>([])
   const [filter, setFilter] = useState('')
   const [selectedTagIds, setSelectedTagIds] = useState<Set<number>>(new Set())
-  const [corpora, setCorpora] = useState<string[]>([])
   const [allFrequencies, setAllFrequencies] = useState<VerbFrequency[]>([])
   const [allPairTranslations, setAllPairTranslations] = useState<PairTranslation[]>([])
+  const [cefrByLemma, setCefrByLemma] = useState<Map<string, string>>(new Map())
+  const [selectedCefr, setSelectedCefr] = useState<Set<string>>(new Set())
   const [sortKey, setSortKey] = useState<'lemma' | string>('lemma')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
   async function load() {
-    const [vs, ps, tags, pts, corp, freqs, trs] = await Promise.all([
+    const [vs, ps, tags, pts, freqs, trs, cefr] = await Promise.all([
       api.get<Verb[]>('/verbs'),
       api.get<AspectPair[]>('/aspect-pairs'),
       api.get<Tag[]>('/tags'),
       api.get<PairTag[]>('/pair-tags'),
-      api.get<string[]>('/corpora'),
       api.get<VerbFrequency[]>('/frequencies'),
       api.get<PairTranslation[]>('/lexeme-translations'),
+      api.get<Record<string, string>>('/cefr'),
     ])
     setVerbs(vs)
     setPairs(ps)
     setAllTags(tags)
     setPairTags(pts)
-    setCorpora(corp)
     setAllFrequencies(freqs)
     setAllPairTranslations(trs)
+    setCefrByLemma(new Map(Object.entries(cefr)))
   }
 
   useEffect(() => { load() }, [])
@@ -77,6 +79,11 @@ export default function VerbListPage() {
       .filter((t): t is Tag => t !== undefined)
       .sort((a, b) => a.name.localeCompare(b.name))
 
+  function toggleCefr(level: string) {
+    setSelectedCefr(prev => { const n = new Set(prev); n.has(level) ? n.delete(level) : n.add(level); return n })
+    setPage(0)
+  }
+
   function toggleTag(id: number) {
     setSelectedTagIds(prev => {
       const next = new Set(prev)
@@ -86,17 +93,24 @@ export default function VerbListPage() {
     setPage(0)
   }
 
-  const displayCorpora = corpora.filter(c => c === FREQ_CORPUS)
+  const displayCorpora = [FREQ_CORPUS]
+
+  // Sum canonical + variant ipm per canonical verb per corpus
+  const summedIpm = new Map<string, number>()
+  for (const f of allFrequencies) {
+    const canonId = f.variant_of ?? f.verb_id
+    const key = `${canonId}:${f.corpus}`
+    summedIpm.set(key, (summedIpm.get(key) ?? 0) + f.ipm)
+  }
 
   // Rank all fetched pairs per corpus (descending ipm). Unfetched pairs → no entry.
   const pairRanks = new Map<string, number>()
   for (const corpus of displayCorpora) {
     const fetched = pairs
       .map(p => {
-        const ipf = p.ipf_verb_id != null ? allFrequencies.find(f => f.verb_id === p.ipf_verb_id && f.corpus === corpus) : undefined
-        const pf = p.pf_verb_id != null ? allFrequencies.find(f => f.verb_id === p.pf_verb_id && f.corpus === corpus) : undefined
-        if (!ipf && !pf) return null
-        const ipm = (ipf?.ipm ?? 0) + (pf?.ipm ?? 0)
+        const ipfIpm = p.ipf_verb_id != null ? (summedIpm.get(`${p.ipf_verb_id}:${corpus}`) ?? 0) : 0
+        const pfIpm = p.pf_verb_id != null ? (summedIpm.get(`${p.pf_verb_id}:${corpus}`) ?? 0) : 0
+        const ipm = ipfIpm + pfIpm
         if (ipm === 0) return null
         return { pairId: p.id, ipm }
       })
@@ -106,12 +120,9 @@ export default function VerbListPage() {
   }
 
   function corpusSlot(p: AspectPair, corpus: string): { text: string; style: React.CSSProperties } {
-    const ipfRow = p.ipf_verb_id != null ? allFrequencies.find(f => f.verb_id === p.ipf_verb_id && f.corpus === corpus) : undefined
-    const pfRow = p.pf_verb_id != null ? allFrequencies.find(f => f.verb_id === p.pf_verb_id && f.corpus === corpus) : undefined
-    const ipfIpm = ipfRow?.ipm ?? 0
-    const pfIpm = pfRow?.ipm ?? 0
+    const ipfIpm = p.ipf_verb_id != null ? (summedIpm.get(`${p.ipf_verb_id}:${corpus}`) ?? 0) : 0
+    const pfIpm = p.pf_verb_id != null ? (summedIpm.get(`${p.pf_verb_id}:${corpus}`) ?? 0) : 0
     const total = ipfIpm + pfIpm
-    if (!ipfRow && !pfRow) return { text: '—', style: { color: '#ccc' } }
     if (total === 0) return { text: '—', style: { color: '#ccc' } }
 
     const rank = pairRanks.get(`${p.id}:${corpus}`) ?? '?'
@@ -138,6 +149,13 @@ export default function VerbListPage() {
       const pTags = tagsForPair(p.id)
       if (![...selectedTagIds].every(tid => pTags.some(t => t.id === tid))) return false
     }
+    if (selectedCefr.size > 0) {
+      const level = lowerCefrLevel(
+        cefrByLemma.get(p.ipf_verb?.infinitive ?? '') as CefrLevel | undefined,
+        cefrByLemma.get(p.pf_verb?.infinitive ?? '') as CefrLevel | undefined,
+      )
+      if (!selectedCefr.has(level ?? '')) return false
+    }
     return true
   })
 
@@ -148,6 +166,21 @@ export default function VerbListPage() {
   }
 
   const sortedPairs = [...visiblePairs].sort((a, b) => {
+    if (sortKey === 'cefr') {
+      const al = lowerCefrLevel(
+        cefrByLemma.get(a.ipf_verb?.infinitive ?? '') as CefrLevel | undefined,
+        cefrByLemma.get(a.pf_verb?.infinitive ?? '') as CefrLevel | undefined,
+      )
+      const bl = lowerCefrLevel(
+        cefrByLemma.get(b.ipf_verb?.infinitive ?? '') as CefrLevel | undefined,
+        cefrByLemma.get(b.pf_verb?.infinitive ?? '') as CefrLevel | undefined,
+      )
+      if (!al && !bl) return 0
+      if (!al) return sortDir === 'asc' ? 1 : -1
+      if (!bl) return sortDir === 'asc' ? -1 : 1
+      const cmp = cefrOrder[al] - cefrOrder[bl]
+      return sortDir === 'asc' ? cmp : -cmp
+    }
     let cmp: number
     if (sortKey === 'lemma') {
       const aLemma = a.ipf_verb?.accented ?? a.pf_verb?.accented ?? ''
@@ -185,6 +218,21 @@ export default function VerbListPage() {
         onChange={e => { setFilter(e.target.value); setPage(0) }}
         placeholder="Filter..."
       />
+      <br /><br />
+      <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.75rem' }}>
+        {CEFR_LEVELS.map(level => {
+          const active = selectedCefr.has(level)
+          return (
+            <button key={level} onClick={() => toggleCefr(level)} style={{
+              background: active ? cefrColor[level] : 'transparent',
+              color: active ? cefrTextColor[level] : cefrColor[level],
+              border: `2px solid ${cefrColor[level]}`,
+              borderRadius: '4px', padding: '0.2em 0.6em',
+              cursor: 'pointer', fontWeight: 600, fontSize: '0.85em',
+            }}>{level}</button>
+          )
+        })}
+      </div>
       {filterTags.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.5rem' }}>
           {filterTags.map(t => {
@@ -211,9 +259,7 @@ export default function VerbListPage() {
           })}
         </div>
       )}
-      <br />
-
-      <div style={{ overflowX: 'auto' }}><table style={{ width: '100%' }}>
+      <table>
         <thead>
           <tr>
             <th className="col-mobile-hide"></th>
@@ -233,11 +279,14 @@ export default function VerbListPage() {
                     onClick={() => handleSort(corpus)}
                     style={{ cursor: 'pointer', userSelect: 'none', marginRight: '0.5em', whiteSpace: 'nowrap' }}
                   >
-                    ipm ({corpus}){sortKey === corpus ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                    ipm{sortKey === corpus ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
                   </span>
                 ))}
               </th>
             )}
+            <th style={{ cursor: 'pointer', userSelect: 'none', fontWeight: 'normal', fontSize: '0.85em' }} onClick={() => handleSort('cefr')}>
+              ПУЛЬС {sortKey === 'cefr' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -308,10 +357,25 @@ export default function VerbListPage() {
                   </td>
                 )
               })()}
+              {(() => {
+                const level = lowerCefrLevel(
+                  cefrByLemma.get(p.ipf_verb?.infinitive ?? '') as CefrLevel | undefined,
+                  cefrByLemma.get(p.pf_verb?.infinitive ?? '') as CefrLevel | undefined,
+                )
+                return (
+                  <td>
+                    {level && (
+                      <span style={{ background: cefrColor[level], color: cefrTextColor[level], padding: '0.1em 0.4em', borderRadius: '3px', fontSize: '0.8em', fontWeight: 600 }}>
+                        {level}
+                      </span>
+                    )}
+                  </td>
+                )
+              })()}
             </tr>
           ))}
         </tbody>
-      </table></div>
+      </table>
 
       <Pagination
         currentPage={clampedPage}

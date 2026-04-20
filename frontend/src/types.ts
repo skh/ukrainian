@@ -4,6 +4,7 @@ export interface Verb {
   accented: string
   aspect: 'ipf' | 'pf'
   variant_of: number | null
+  variants: Verb[]
 }
 
 export interface Tag {
@@ -21,19 +22,18 @@ export interface AspectPair {
 }
 
 export interface VerbFrequency {
-  id: number
   verb_id: number
   corpus: string
+  freq: number
   ipm: number
-  fetched_at: string
+  variant_of: number | null
 }
 
 export interface LexemeFrequency {
-  id: number
   lexeme_id: number
   corpus: string
+  freq: number
   ipm: number
-  fetched_at: string
 }
 
 export interface LexemeTranslation {

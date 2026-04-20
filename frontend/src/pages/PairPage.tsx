@@ -8,6 +8,7 @@ import { VerbFormData } from '../utils/gorohParser'
 import { Tag, Chunk, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
 import { aspectBg } from '../utils/theme'
 import { gorohUrl } from '../config'
+import { CefrLevel, cefrColor, cefrTextColor } from '../utils/cefr'
 import { TagChip } from '../widgets/TagChip'
 import { useTranslations } from '../hooks/useTranslations'
 
@@ -21,10 +22,9 @@ export default function PairPage() {
   const [tags, setTags] = useState<Tag[]>([])
   const [chunks, setChunks] = useState<Chunk[]>([])
 
-  const [corpora, setCorpora] = useState<string[]>([])
   const [frequencies, setFrequencies] = useState<VerbFrequency[]>([])
-  const [fetchingCorpus, setFetchingCorpus] = useState<string | null>(null)
-  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [cefrByLemma, setCefrByLemma] = useState<Map<string, string>>(new Map())
+  const [variantForms, setVariantForms] = useState<Map<number, VerbFormData[]>>(new Map())
 
   const [wordFamilies, setWordFamilies] = useState<WordFamily[]>([])
   const { langs, translations, addTranslation, updateTranslation, deleteTranslation } = useTranslations(
@@ -34,42 +34,28 @@ export default function PairPage() {
   useEffect(() => {
     api.get<AspectPair>(`/aspect-pairs/${pairId}`).then(async p => {
       setPair(p)
-      const [ipf, pf, ts, cks, corp, freqs] = await Promise.all([
+      const [ipf, pf, ts, cks, freqs, cefr] = await Promise.all([
         p.ipf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.ipf_verb_id}/forms`) : Promise.resolve([]),
         p.pf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.pf_verb_id}/forms`) : Promise.resolve([]),
         api.get<Tag[]>(`/pairs/${pairId}/tags`),
         api.get<Chunk[]>(`/pairs/${pairId}/chunks`),
-        api.get<string[]>('/corpora'),
         api.get<VerbFrequency[]>(`/pairs/${pairId}/frequencies`),
+        api.get<Record<string, string>>('/cefr'),
       ])
       setIpfForms(ipf)
       setPfForms(pf)
       setTags(ts)
       setChunks(cks)
-      setCorpora(corp)
       setFrequencies(freqs)
+      setCefrByLemma(new Map(Object.entries(cefr)))
+      const allVariants = [...(p.ipf_verb?.variants ?? []), ...(p.pf_verb?.variants ?? [])]
+      const variantEntries = await Promise.all(
+        allVariants.map(v => api.get<VerbFormData[]>(`/verbs/${v.id}/forms`).then(f => [v.id, f] as const))
+      )
+      setVariantForms(new Map(variantEntries))
       setWordFamilies(await api.get<WordFamily[]>(`/pairs/${pairId}/word-families`))
     })
   }, [pairId])
-
-  async function fetchFrequency(corpus: string) {
-    setFetchingCorpus(corpus)
-    setFetchError(null)
-    try {
-      const updated = await api.post<VerbFrequency[]>(
-        `/pairs/${pairId}/fetch-frequency?corpus=${encodeURIComponent(corpus)}`,
-        {}
-      )
-      setFrequencies(prev => {
-        const next = prev.filter(f => f.corpus !== corpus)
-        return [...next, ...updated]
-      })
-    } catch (e) {
-      setFetchError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setFetchingCorpus(null)
-    }
-  }
 
   async function createFamilyWithPair() {
     const f = await api.post<WordFamily>('/word-families', {})
@@ -134,83 +120,132 @@ export default function PairPage() {
       <div className={pair.ipf_verb && pair.pf_verb ? 'two-col-grid' : undefined}>
         {pair.ipf_verb && (
           <div>
-            <h2 style={{ marginBottom: '0.5rem' }}>
+            <h2 style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <a href={gorohUrl(pair.ipf_verb.infinitive)} target="_blank" rel="noreferrer"
                 style={{ background: aspectBg.ipf, display: 'inline-block', padding: '0.15em 0.5em', borderRadius: '4px', textDecoration: 'none', color: 'inherit' }}>
                 {pair.ipf_verb.accented}
               </a>
+              {(() => { const l = cefrByLemma.get(pair.ipf_verb.infinitive) as CefrLevel | undefined; return l && (
+                <span style={{ background: cefrColor[l], color: cefrTextColor[l], padding: '0.1em 0.4em', borderRadius: '3px', fontSize: '0.6em', fontWeight: 600 }}>{l}</span>
+              )})()}
             </h2>
             <FormsTable forms={ipfForms} />
+            {pair.ipf_verb.variants.map(v => (
+              <div key={v.id} style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ marginBottom: '0.4rem' }}>
+                  <a href={gorohUrl(v.infinitive)} target="_blank" rel="noreferrer"
+                    style={{ background: aspectBg.ipf, padding: '0.1em 0.4em', borderRadius: '4px', textDecoration: 'none', color: 'inherit', fontSize: '0.85em' }}>
+                    {v.accented}
+                  </a>
+                </h3>
+                <FormsTable forms={variantForms.get(v.id) ?? []} />
+              </div>
+            ))}
           </div>
         )}
         {pair.pf_verb && (
           <div>
-            <h2 style={{ marginBottom: '0.5rem' }}>
+            <h2 style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <a href={gorohUrl(pair.pf_verb.infinitive)} target="_blank" rel="noreferrer"
                 style={{ background: aspectBg.pf, display: 'inline-block', padding: '0.15em 0.5em', borderRadius: '4px', textDecoration: 'none', color: 'inherit' }}>
                 {pair.pf_verb.accented}
               </a>
+              {(() => { const l = cefrByLemma.get(pair.pf_verb.infinitive) as CefrLevel | undefined; return l && (
+                <span style={{ background: cefrColor[l], color: cefrTextColor[l], padding: '0.1em 0.4em', borderRadius: '3px', fontSize: '0.6em', fontWeight: 600 }}>{l}</span>
+              )})()}
             </h2>
             <FormsTable forms={pfForms} />
+            {pair.pf_verb.variants.map(v => (
+              <div key={v.id} style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ marginBottom: '0.4rem' }}>
+                  <a href={gorohUrl(v.infinitive)} target="_blank" rel="noreferrer"
+                    style={{ background: aspectBg.pf, padding: '0.1em 0.4em', borderRadius: '4px', textDecoration: 'none', color: 'inherit', fontSize: '0.85em' }}>
+                    {v.accented}
+                  </a>
+                </h3>
+                <FormsTable forms={variantForms.get(v.id) ?? []} />
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {corpora.length > 0 && pair && (
-        <div style={{ marginTop: '2rem' }}>
-          <h2 style={{ marginBottom: '0.5rem' }}>Frequency</h2>
-          <div style={{ overflowX: 'auto' }}><table>
-            <thead>
-              <tr>
-                <th>Corpus</th>
-                {pair.ipf_verb && <th style={{ background: aspectBg.ipf }}>{pair.ipf_verb.accented} ipm</th>}
-                {pair.pf_verb && <th style={{ background: aspectBg.pf }}>{pair.pf_verb.accented} ipm</th>}
-                <th>Pair ipm</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {corpora.map(corpus => {
-                const ipfRow = pair.ipf_verb_id != null ? frequencies.find(f => f.verb_id === pair.ipf_verb_id && f.corpus === corpus) : undefined
-                const pfRow = pair.pf_verb_id != null ? frequencies.find(f => f.verb_id === pair.pf_verb_id && f.corpus === corpus) : undefined
-                const pairIpm = (ipfRow?.ipm ?? 0) + (pfRow?.ipm ?? 0) || null
-                const fetching = fetchingCorpus === corpus
-                const fetchedAt = ipfRow?.fetched_at
-                  ? new Date(ipfRow.fetched_at).toLocaleString()
-                  : null
-                return (
-                  <tr key={corpus}>
-                    <td>{corpus}</td>
-                    {pair.ipf_verb && (
-                      <td style={{ background: aspectBg.ipf, textAlign: 'right' }}>
-                        {ipfRow ? ipfRow.ipm.toFixed(2) : '—'}
-                      </td>
-                    )}
-                    {pair.pf_verb && (
-                      <td style={{ background: aspectBg.pf, textAlign: 'right' }}>
-                        {pfRow ? pfRow.ipm.toFixed(2) : '—'}
-                      </td>
-                    )}
-                    <td style={{ textAlign: 'right' }}>
-                      {pairIpm !== null ? pairIpm.toFixed(2) : '—'}
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => fetchFrequency(corpus)}
-                        disabled={fetching}
-                        title={fetchedAt ? `Last fetched: ${fetchedAt}` : undefined}
-                      >
-                        {fetching ? '…' : (ipfRow || pfRow) ? 'Refetch' : 'Fetch'}
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table></div>
-          {fetchError && <p className="text-danger" style={{ marginTop: '0.4rem' }}>{fetchError}</p>}
-        </div>
-      )}
+      {frequencies.length > 0 && pair && (() => {
+        const corpora = [...new Set(frequencies.map(f => f.corpus))].sort()
+        return (
+          <div style={{ marginTop: '2rem' }}>
+            <h2 style={{ marginBottom: '0.5rem' }}>Frequency</h2>
+            <div style={{ overflowX: 'auto' }}><table>
+              <thead>
+                <tr>
+                  <th>Corpus</th>
+                  {pair.ipf_verb && <th style={{ background: aspectBg.ipf }}>{pair.ipf_verb.accented} ipm</th>}
+                  {pair.pf_verb && <th style={{ background: aspectBg.pf }}>{pair.pf_verb.accented} ipm</th>}
+                  <th>Total ipm</th>
+                </tr>
+              </thead>
+              <tbody>
+                {corpora.map(corpus => {
+                  const ipfRow = pair.ipf_verb_id != null ? frequencies.find(f => f.verb_id === pair.ipf_verb_id && f.corpus === corpus) : undefined
+                  const pfRow = pair.pf_verb_id != null ? frequencies.find(f => f.verb_id === pair.pf_verb_id && f.corpus === corpus) : undefined
+                  const ipfVariants = pair.ipf_verb_id != null ? frequencies.filter(f => f.variant_of === pair.ipf_verb_id && f.corpus === corpus) : []
+                  const pfVariants = pair.pf_verb_id != null ? frequencies.filter(f => f.variant_of === pair.pf_verb_id && f.corpus === corpus) : []
+                  const totalIpm = (ipfRow?.ipm ?? 0) + ipfVariants.reduce((s, f) => s + f.ipm, 0)
+                                 + (pfRow?.ipm ?? 0) + pfVariants.reduce((s, f) => s + f.ipm, 0) || null
+
+                  const ipfVariantVerbs = pair.ipf_verb?.variants ?? []
+                  const pfVariantVerbs = pair.pf_verb?.variants ?? []
+
+                  return (
+                    <>
+                      <tr key={corpus}>
+                        <td>{corpus}</td>
+                        {pair.ipf_verb && (
+                          <td style={{ background: aspectBg.ipf, textAlign: 'right' }}>
+                            {ipfRow ? ipfRow.ipm.toFixed(2) : '—'}
+                          </td>
+                        )}
+                        {pair.pf_verb && (
+                          <td style={{ background: aspectBg.pf, textAlign: 'right' }}>
+                            {pfRow ? pfRow.ipm.toFixed(2) : '—'}
+                          </td>
+                        )}
+                        <td style={{ textAlign: 'right' }}>
+                          {totalIpm !== null ? totalIpm.toFixed(2) : '—'}
+                        </td>
+                      </tr>
+                      {ipfVariantVerbs.map(v => {
+                        const vRow = frequencies.find(f => f.verb_id === v.id && f.corpus === corpus)
+                        if (!vRow) return null
+                        return (
+                          <tr key={`${corpus}-ipf-v${v.id}`} style={{ fontSize: '0.85em', color: '#888' }}>
+                            <td style={{ paddingLeft: '1.5em' }}>↳ {v.accented}</td>
+                            {pair.ipf_verb && <td style={{ background: aspectBg.ipf, textAlign: 'right' }}>{vRow.ipm.toFixed(2)}</td>}
+                            {pair.pf_verb && <td style={{ background: aspectBg.pf }}></td>}
+                            <td></td>
+                          </tr>
+                        )
+                      })}
+                      {pfVariantVerbs.map(v => {
+                        const vRow = frequencies.find(f => f.verb_id === v.id && f.corpus === corpus)
+                        if (!vRow) return null
+                        return (
+                          <tr key={`${corpus}-pf-v${v.id}`} style={{ fontSize: '0.85em', color: '#888' }}>
+                            <td style={{ paddingLeft: '1.5em' }}>↳ {v.accented}</td>
+                            {pair.ipf_verb && <td style={{ background: aspectBg.ipf }}></td>}
+                            {pair.pf_verb && <td style={{ background: aspectBg.pf, textAlign: 'right' }}>{vRow.ipm.toFixed(2)}</td>}
+                            <td></td>
+                          </tr>
+                        )
+                      })}
+                    </>
+                  )
+                })}
+              </tbody>
+            </table></div>
+          </div>
+        )
+      })()}
 
       <div style={{ marginTop: '2rem' }}>
         <h2 style={{ marginBottom: '0.5rem' }}>Chunks</h2>

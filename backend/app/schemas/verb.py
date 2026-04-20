@@ -23,5 +23,9 @@ class VerbUpdate(BaseModel):
 class VerbRead(VerbBase):
     id: int
     variant_of: int | None = None
+    variants: list['VerbRead'] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+VerbRead.model_rebuild()
