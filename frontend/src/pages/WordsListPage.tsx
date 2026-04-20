@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { Lexeme, LexemeTranslation, LexemeFrequency, VerbFrequency } from '../types'
+import { Lexeme, LexemeTranslation, LexemeFrequency, LexemeTag, Tag, VerbFrequency } from '../types'
 import { Nav } from '../components/Nav'
 import { DictionaryTabs } from '../components/DictionaryTabs'
 import { Pagination } from '../components/Pagination'
@@ -10,6 +10,10 @@ import { aspectBg } from '../utils/theme'
 import { stripAccent } from '../utils/forms'
 import { FREQ_CORPUS } from '../config'
 import { CEFR_LEVELS, CefrLevel, cefrColor, cefrTextColor, cefrOrder, lowerCefrLevel } from '../utils/cefr'
+import { TagChip } from '../widgets/TagChip'
+import { TagPicker } from '../widgets/TagPicker'
+import { tagColor } from '../widgets/tagColor'
+import { FilterPill } from '../widgets/FilterPill'
 
 const posBg: Record<string, string> = {
   noun:        '#d1fae5',
@@ -68,6 +72,9 @@ export default function WordsListPage() {
   const [verbIpmByVerbId, setVerbIpmByVerbId] = useState<Map<number, number>>(new Map())
   const [cefrByLemma, setCefrByLemma] = useState<Map<string, string>>(new Map())
   const [selectedCefr, setSelectedCefr] = useState<Set<string>>(new Set())
+  const [allTags, setAllTags] = useState<Tag[]>([])
+  const [lexemeTags, setLexemeTags] = useState<LexemeTag[]>([])
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<number>>(new Set())
   const [filter, setFilter] = useState('')
   const [sortKey, setSortKey] = useState<'lemma' | 'ipm' | 'cefr'>('lemma')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -85,26 +92,54 @@ export default function WordsListPage() {
     setPage(0)
   }
 
-  useEffect(() => {
-    Promise.all([
+  function toggleTag(id: number) {
+    setSelectedTagIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setPage(0)
+  }
+
+  const tagsForLexeme = (lexemeId: number): Tag[] =>
+    lexemeTags
+      .filter(lt => lt.lexeme_id === lexemeId)
+      .map(lt => allTags.find(t => t.id === lt.tag_id))
+      .filter((t): t is Tag => t !== undefined)
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+  async function addTag(lexemeId: number, tagName: string) {
+    const tag = await api.post<Tag>('/tags', { name: tagName })
+    await api.post(`/lexemes/${lexemeId}/tags/${tag.id}`, {})
+    await load()
+  }
+
+  async function removeTag(lexemeId: number, tagId: number) {
+    await api.delete(`/lexemes/${lexemeId}/tags/${tagId}`)
+    await load()
+  }
+
+  async function load() {
+    const [es, trs, freqs, verbFreqs, cefr, tags, lts] = await Promise.all([
       api.get<Lexeme[]>('/words'),
       api.get<LexemeTranslation[]>('/lexeme-translations'),
       api.get<LexemeFrequency[]>('/lexeme-frequencies'),
       api.get<VerbFrequency[]>('/frequencies'),
       api.get<Record<string, string>>('/cefr'),
-    ]).then(([es, trs, freqs, verbFreqs, cefr]) => {
-      setEntries(es)
-      setDeByLexeme(new Map(trs.filter(t => t.lang === 'de').map(t => [t.lexeme_id, t.text])))
-      setIpmByLexeme(new Map(freqs.filter(f => f.corpus === FREQ_CORPUS).map(f => [f.lexeme_id, f.ipm])))
-      const summedVerbIpm = new Map<number, number>()
-      for (const f of verbFreqs.filter(f => f.corpus === FREQ_CORPUS)) {
-        const canonId = f.variant_of ?? f.verb_id
-        summedVerbIpm.set(canonId, (summedVerbIpm.get(canonId) ?? 0) + f.ipm)
-      }
-      setVerbIpmByVerbId(summedVerbIpm)
-      setCefrByLemma(new Map(Object.entries(cefr)))
-    })
-  }, [])
+      api.get<Tag[]>('/tags'),
+      api.get<LexemeTag[]>('/lexeme-tags'),
+    ])
+    setEntries(es)
+    setDeByLexeme(new Map(trs.filter(t => t.lang === 'de').map(t => [t.lexeme_id, t.text])))
+    setIpmByLexeme(new Map(freqs.filter(f => f.corpus === FREQ_CORPUS).map(f => [f.lexeme_id, f.ipm])))
+    const summedVerbIpm = new Map<number, number>()
+    for (const f of verbFreqs.filter(f => f.corpus === FREQ_CORPUS)) {
+      const canonId = f.variant_of ?? f.verb_id
+      summedVerbIpm.set(canonId, (summedVerbIpm.get(canonId) ?? 0) + f.ipm)
+    }
+    setVerbIpmByVerbId(summedVerbIpm)
+    setCefrByLemma(new Map(Object.entries(cefr)))
+    setAllTags(tags)
+    setLexemeTags(lts)
+  }
+
+  useEffect(() => { load() }, [])
 
   function entryIpm(e: Lexeme): number | undefined {
     if (e.pos === 'pair' && e.pair) {
@@ -120,6 +155,10 @@ export default function WordsListPage() {
     .filter(e => {
       if (q && !stripAccent(entryText(e)).toLowerCase().includes(q)) return false
       if (selectedCefr.size > 0 && !selectedCefr.has(entryCefr(e, cefrByLemma) ?? '')) return false
+      if (selectedTagIds.size > 0) {
+        const eTags = tagsForLexeme(e.id)
+        if (![...selectedTagIds].every(tid => eTags.some(t => t.id === tid))) return false
+      }
       return true
     })
     .sort((a, b) => {
@@ -161,20 +200,22 @@ export default function WordsListPage() {
       <br /><br />
       <input value={filter} onChange={e => { setFilter(e.target.value); setPage(0) }} placeholder="Filter..." />
       <br /><br />
-      <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.75rem' }}>
-        {CEFR_LEVELS.map(level => {
-          const active = selectedCefr.has(level)
-          return (
-            <button key={level} onClick={() => toggleCefr(level)} style={{
-              background: active ? cefrColor[level] : 'transparent',
-              color: active ? cefrTextColor[level] : cefrColor[level],
-              border: `2px solid ${cefrColor[level]}`,
-              borderRadius: '4px', padding: '0.2em 0.6em',
-              cursor: 'pointer', fontWeight: 600, fontSize: '0.85em',
-            }}>{level}</button>
-          )
-        })}
+      <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.5rem' }}>
+        {CEFR_LEVELS.map(level => (
+          <FilterPill key={level} label={level} active={selectedCefr.has(level)}
+            background={cefrColor[level]} color={cefrTextColor[level]}
+            onToggle={() => toggleCefr(level)} />
+        ))}
       </div>
+      {allTags.filter(t => lexemeTags.some(lt => lt.tag_id === t.id)).length > 0 && (
+        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+          {allTags.filter(t => lexemeTags.some(lt => lt.tag_id === t.id)).sort((a, b) => a.name.localeCompare(b.name)).map(t => {
+            const { background, color } = tagColor(t.id)
+            return <FilterPill key={t.id} label={t.name} active={selectedTagIds.has(t.id)}
+              background={background} color={color} onToggle={() => toggleTag(t.id)} />
+          })}
+        </div>
+      )}
       {filtered.length === 0 ? (
         <p className="text-faint">No entries yet.</p>
       ) : (
@@ -194,6 +235,7 @@ export default function WordsListPage() {
               <th style={{ cursor: 'pointer', userSelect: 'none', fontWeight: 'normal', fontSize: '0.85em' }} onClick={() => handleSort('cefr')}>
                 ПУЛЬС {sortKey === 'cefr' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
               </th>
+              <th className="col-mobile-hide">Tags</th>
             </tr>
           </thead>
           <tbody>
@@ -226,6 +268,18 @@ export default function WordsListPage() {
                         {level}
                       </span>
                     )}
+                  </td>
+                  <td className="col-mobile-hide">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.3rem' }}>
+                      {tagsForLexeme(e.id).map(t => (
+                        <TagChip key={t.id} tag={t} onRemove={() => removeTag(e.id, t.id)} />
+                      ))}
+                      <TagPicker
+                        allTags={allTags}
+                        assignedTagIds={new Set(tagsForLexeme(e.id).map(t => t.id))}
+                        onAdd={name => addTag(e.id, name)}
+                      />
+                    </div>
                   </td>
                 </tr>
               )

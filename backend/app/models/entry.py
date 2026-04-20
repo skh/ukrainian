@@ -4,6 +4,13 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
+class LexemeTag(Base):
+    __tablename__ = "lexeme_tags"
+
+    lexeme_id = Column(Integer, ForeignKey("lexemes.id", ondelete="CASCADE"), primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+
+
 class Lexeme(Base):
     __tablename__ = "lexemes"
 

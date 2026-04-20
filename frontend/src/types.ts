@@ -82,8 +82,8 @@ export interface SuggestedLink {
   matched_form: string
 }
 
-export interface PairTag {
-  pair_id: number
+export interface LexemeTag {
+  lexeme_id: number
   tag_id: number
 }
 

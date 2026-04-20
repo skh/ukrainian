@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.crud import get_or_404
 from app.database import get_db
-from app.models.verb import AspectPair, PairTag, Tag
-from app.schemas.tag import PairTagRead, TagCreate, TagRead
+from app.models.entry import Lexeme, LexemeTag
+from app.models.verb import Tag
+from app.schemas.tag import LexemeTagRead, TagCreate, TagRead
 
 router = APIRouter(tags=["tags"])
 
@@ -34,39 +35,39 @@ def delete_tag(tag_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
-@router.get("/api/pair-tags", response_model=list[PairTagRead])
-def list_pair_tags(db: Session = Depends(get_db)):
-    return db.execute(select(PairTag)).scalars().all()
+@router.get("/api/lexeme-tags", response_model=list[LexemeTagRead])
+def list_lexeme_tags(db: Session = Depends(get_db)):
+    return db.execute(select(LexemeTag)).scalars().all()
 
 
-@router.get("/api/pairs/{pair_id}/tags", response_model=list[TagRead])
-def get_pair_tags(pair_id: int, db: Session = Depends(get_db)):
-    get_or_404(db, AspectPair, pair_id)
+@router.get("/api/lexemes/{lexeme_id}/tags", response_model=list[TagRead])
+def get_lexeme_tags(lexeme_id: int, db: Session = Depends(get_db)):
+    get_or_404(db, Lexeme, lexeme_id)
     return db.execute(
         select(Tag)
-        .join(PairTag, Tag.id == PairTag.tag_id)
-        .where(PairTag.pair_id == pair_id)
+        .join(LexemeTag, Tag.id == LexemeTag.tag_id)
+        .where(LexemeTag.lexeme_id == lexeme_id)
         .order_by(Tag.name)
     ).scalars().all()
 
 
-@router.post("/api/pairs/{pair_id}/tags/{tag_id}", status_code=201)
-def add_pair_tag(pair_id: int, tag_id: int, db: Session = Depends(get_db)):
-    get_or_404(db, AspectPair, pair_id)
+@router.post("/api/lexemes/{lexeme_id}/tags/{tag_id}", status_code=201)
+def add_lexeme_tag(lexeme_id: int, tag_id: int, db: Session = Depends(get_db)):
+    get_or_404(db, Lexeme, lexeme_id)
     get_or_404(db, Tag, tag_id)
     existing = db.execute(
-        select(PairTag).where(PairTag.pair_id == pair_id, PairTag.tag_id == tag_id)
+        select(LexemeTag).where(LexemeTag.lexeme_id == lexeme_id, LexemeTag.tag_id == tag_id)
     ).scalar_one_or_none()
     if not existing:
-        db.add(PairTag(pair_id=pair_id, tag_id=tag_id))
+        db.add(LexemeTag(lexeme_id=lexeme_id, tag_id=tag_id))
         db.commit()
 
 
-@router.delete("/api/pairs/{pair_id}/tags/{tag_id}", status_code=204)
-def remove_pair_tag(pair_id: int, tag_id: int, db: Session = Depends(get_db)):
-    pt = db.execute(
-        select(PairTag).where(PairTag.pair_id == pair_id, PairTag.tag_id == tag_id)
+@router.delete("/api/lexemes/{lexeme_id}/tags/{tag_id}", status_code=204)
+def remove_lexeme_tag(lexeme_id: int, tag_id: int, db: Session = Depends(get_db)):
+    lt = db.execute(
+        select(LexemeTag).where(LexemeTag.lexeme_id == lexeme_id, LexemeTag.tag_id == tag_id)
     ).scalar_one_or_none()
-    if pt:
-        db.delete(pt)
+    if lt:
+        db.delete(lt)
         db.commit()

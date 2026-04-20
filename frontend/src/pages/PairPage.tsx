@@ -37,7 +37,7 @@ export default function PairPage() {
       const [ipf, pf, ts, cks, freqs, cefr] = await Promise.all([
         p.ipf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.ipf_verb_id}/forms`) : Promise.resolve([]),
         p.pf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.pf_verb_id}/forms`) : Promise.resolve([]),
-        api.get<Tag[]>(`/pairs/${pairId}/tags`),
+        p.lexeme_id != null ? api.get<Tag[]>(`/lexemes/${p.lexeme_id}/tags`) : Promise.resolve([]),
         api.get<Chunk[]>(`/pairs/${pairId}/chunks`),
         api.get<VerbFrequency[]>(`/pairs/${pairId}/frequencies`),
         api.get<Record<string, string>>('/cefr'),

@@ -321,7 +321,7 @@ export default function DrillPage() {
   const [pairs, setPairs] = useState<AspectPair[]>([])
   const [formsByVerbId, setFormsByVerbId] = useState<Map<number, VerbFormRead[]>>(new Map())
   const [allTags, setAllTags] = useState<Tag[]>([])
-  const [pairTags, setPairTags] = useState<Array<{ pair_id: number; tag_id: number }>>([])
+  const [lexemeTags, setLexemeTags] = useState<Array<{ lexeme_id: number; tag_id: number }>>([])
   const [pairTranslations, setPairTranslations] = useState<PairTranslation[]>([])
   const [verbToPairId, setVerbToPairId] = useState<Map<number, number>>(new Map())
   const [verbToLexemeId, setVerbToLexemeId] = useState<Map<number, number>>(new Map())
@@ -342,7 +342,7 @@ export default function DrillPage() {
       api.get<AspectPair[]>('/aspect-pairs'),
       api.get<VerbFormRead[]>('/verb-forms'),
       api.get<Tag[]>('/tags'),
-      api.get<Array<{ pair_id: number; tag_id: number }>>('/pair-tags'),
+      api.get<Array<{ lexeme_id: number; tag_id: number }>>('/lexeme-tags'),
       api.get<PairTranslation[]>('/lexeme-translations'),
       api.get<Chunk[]>('/chunks'),
     ]).then(([vs, ps, fs, tags, pts, trs, chunks]) => {
@@ -356,7 +356,7 @@ export default function DrillPage() {
       }
       setFormsByVerbId(map)
       setAllTags(tags)
-      setPairTags(pts)
+      setLexemeTags(pts)
       setPairTranslations(trs)
       const v2p = new Map<number, number>()
       const v2l = new Map<number, number>()
@@ -387,7 +387,9 @@ export default function DrillPage() {
     }
     if (scope === 'tag') {
       const allowedPairIds = new Set(
-        pairTags.filter(pt => pt.tag_id === selectedTagId).map(pt => pt.pair_id)
+        lexemeTags.filter(lt => lt.tag_id === selectedTagId)
+          .map(lt => pairs.find(p => p.lexeme_id === lt.lexeme_id)?.id)
+          .filter((id): id is number => id !== undefined)
       )
       const filteredPairs = pairs.filter(p => allowedPairIds.has(p.id))
       const allowedVerbIds = new Set(filteredPairs.flatMap(p => [p.ipf_verb_id, p.pf_verb_id]))
@@ -531,12 +533,12 @@ export default function DrillPage() {
           : c
       ))
     } else {
-      const pairId = verbToPairId.get(question.verbId)
-      if (pairId) {
-        await api.post(`/pairs/${pairId}/tags/${tag.id}`, {})
-        setPairTags(prev => prev.some(pt => pt.pair_id === pairId && pt.tag_id === tag.id)
+      const lexemeId = verbToLexemeId.get(question.verbId)
+      if (lexemeId) {
+        await api.post(`/lexemes/${lexemeId}/tags/${tag.id}`, {})
+        setLexemeTags(prev => prev.some(lt => lt.lexeme_id === lexemeId && lt.tag_id === tag.id)
           ? prev
-          : [...prev, { pair_id: pairId, tag_id: tag.id }]
+          : [...prev, { lexeme_id: lexemeId, tag_id: tag.id }]
         )
       }
     }
@@ -888,13 +890,13 @@ export default function DrillPage() {
           <span className="text-muted" style={{ fontSize: '0.8em' }}>Tags:</span>
           {question && isChunkQ(question)
             ? allChunks.find(c => c.id === question.chunkId)?.tags.map(t => <TagChip key={t.id} tag={t} />)
-            : vq && pairTags.filter(pt => pt.pair_id === verbToPairId.get(vq.verbId)).map(pt => allTags.find(t => t.id === pt.tag_id)).filter(Boolean).map(t => <TagChip key={t!.id} tag={t!} />)
+            : vq && lexemeTags.filter(lt => lt.lexeme_id === verbToLexemeId.get(vq.verbId)).map(lt => allTags.find(t => t.id === lt.tag_id)).filter(Boolean).map(t => <TagChip key={t!.id} tag={t!} />)
           }
           <TagPicker
             allTags={allTags}
             assignedTagIds={question && isChunkQ(question)
               ? new Set(allChunks.find(c => c.id === question.chunkId)?.tags.map(t => t.id) ?? [])
-              : new Set(vq ? pairTags.filter(pt => pt.pair_id === verbToPairId.get(vq.verbId)).map(pt => pt.tag_id) : [])
+              : new Set(vq ? lexemeTags.filter(lt => lt.lexeme_id === verbToLexemeId.get(vq.verbId)).map(lt => lt.tag_id) : [])
             }
             onAdd={addTagToCurrentItem}
           />

@@ -12,8 +12,8 @@ class TagRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PairTagRead(BaseModel):
-    pair_id: int
+class LexemeTagRead(BaseModel):
+    lexeme_id: int
     tag_id: int
 
     model_config = ConfigDict(from_attributes=True)

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { stripAccent } from '../utils/forms'
-import { Verb, Tag, AspectPair, PairTag, VerbFrequency, PairTranslation } from '../types'
+import { Verb, Tag, AspectPair, LexemeTag, VerbFrequency, PairTranslation } from '../types'
 import { aspectBg } from '../utils/theme'
 import { TagChip } from '../widgets/TagChip'
 import { TagPicker } from '../widgets/TagPicker'
@@ -12,13 +12,14 @@ import { Pagination } from '../components/Pagination'
 import { DictionaryTabs } from '../components/DictionaryTabs'
 import { FREQ_CORPUS } from '../config'
 import { CEFR_LEVELS, CefrLevel, cefrColor, cefrTextColor, cefrOrder, lowerCefrLevel } from '../utils/cefr'
+import { FilterPill } from '../widgets/FilterPill'
 
 export default function VerbListPage() {
   const navigate = useNavigate()
   const [verbs, setVerbs] = useState<Verb[]>([])
   const [pairs, setPairs] = useState<AspectPair[]>([])
   const [allTags, setAllTags] = useState<Tag[]>([])
-  const [pairTags, setPairTags] = useState<PairTag[]>([])
+  const [lexemeTags, setLexemeTags] = useState<LexemeTag[]>([])
   const [filter, setFilter] = useState('')
   const [selectedTagIds, setSelectedTagIds] = useState<Set<number>>(new Set())
   const [allFrequencies, setAllFrequencies] = useState<VerbFrequency[]>([])
@@ -35,7 +36,7 @@ export default function VerbListPage() {
       api.get<Verb[]>('/verbs'),
       api.get<AspectPair[]>('/aspect-pairs'),
       api.get<Tag[]>('/tags'),
-      api.get<PairTag[]>('/pair-tags'),
+      api.get<LexemeTag[]>('/lexeme-tags'),
       api.get<VerbFrequency[]>('/frequencies'),
       api.get<PairTranslation[]>('/lexeme-translations'),
       api.get<Record<string, string>>('/cefr'),
@@ -43,7 +44,7 @@ export default function VerbListPage() {
     setVerbs(vs)
     setPairs(ps)
     setAllTags(tags)
-    setPairTags(pts)
+    setLexemeTags(pts)
     setAllFrequencies(freqs)
     setAllPairTranslations(trs)
     setCefrByLemma(new Map(Object.entries(cefr)))
@@ -51,14 +52,14 @@ export default function VerbListPage() {
 
   useEffect(() => { load() }, [])
 
-  async function addTag(pairId: number, tagName: string) {
+  async function addTag(lexemeId: number, tagName: string) {
     const tag = await api.post<Tag>('/tags', { name: tagName })
-    await api.post(`/pairs/${pairId}/tags/${tag.id}`, {})
+    await api.post(`/lexemes/${lexemeId}/tags/${tag.id}`, {})
     await load()
   }
 
-  async function removeTag(pairId: number, tagId: number) {
-    await api.delete(`/pairs/${pairId}/tags/${tagId}`)
+  async function removeTag(lexemeId: number, tagId: number) {
+    await api.delete(`/lexemes/${lexemeId}/tags/${tagId}`)
     await load()
   }
 
@@ -72,10 +73,10 @@ export default function VerbListPage() {
 
   const q = stripAccent(filter.toLowerCase())
 
-  const tagsForPair = (pairId: number): Tag[] =>
-    pairTags
-      .filter(pt => pt.pair_id === pairId)
-      .map(pt => allTags.find(t => t.id === pt.tag_id))
+  const tagsForLexeme = (lexemeId: number): Tag[] =>
+    lexemeTags
+      .filter(lt => lt.lexeme_id === lexemeId)
+      .map(lt => allTags.find(t => t.id === lt.tag_id))
       .filter((t): t is Tag => t !== undefined)
       .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -137,7 +138,8 @@ export default function VerbListPage() {
     return { text: String(rank), style }
   }
 
-  const usedTagIds = new Set(pairTags.map(pt => pt.tag_id))
+  const pairLexemeIds = new Set(pairs.map(p => p.lexeme_id).filter((id): id is number => id !== null))
+  const usedTagIds = new Set(lexemeTags.filter(lt => pairLexemeIds.has(lt.lexeme_id)).map(lt => lt.tag_id))
   const filterTags = allTags.filter(t => usedTagIds.has(t.id)).sort((a, b) => a.name.localeCompare(b.name))
 
   const visiblePairs = pairs.filter(p => {
@@ -146,7 +148,7 @@ export default function VerbListPage() {
       (p.pf_verb && stripAccent(p.pf_verb.accented).toLowerCase().includes(q))
     )) return false
     if (selectedTagIds.size > 0) {
-      const pTags = tagsForPair(p.id)
+      const pTags = tagsForLexeme(p.lexeme_id ?? -1)
       if (![...selectedTagIds].every(tid => pTags.some(t => t.id === tid))) return false
     }
     if (selectedCefr.size > 0) {
@@ -220,42 +222,18 @@ export default function VerbListPage() {
       />
       <br /><br />
       <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.75rem' }}>
-        {CEFR_LEVELS.map(level => {
-          const active = selectedCefr.has(level)
-          return (
-            <button key={level} onClick={() => toggleCefr(level)} style={{
-              background: active ? cefrColor[level] : 'transparent',
-              color: active ? cefrTextColor[level] : cefrColor[level],
-              border: `2px solid ${cefrColor[level]}`,
-              borderRadius: '4px', padding: '0.2em 0.6em',
-              cursor: 'pointer', fontWeight: 600, fontSize: '0.85em',
-            }}>{level}</button>
-          )
-        })}
+        {CEFR_LEVELS.map(level => (
+          <FilterPill key={level} label={level} active={selectedCefr.has(level)}
+            background={cefrColor[level]} color={cefrTextColor[level]}
+            onToggle={() => toggleCefr(level)} />
+        ))}
       </div>
       {filterTags.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.75rem' }}>
           {filterTags.map(t => {
-            const active = selectedTagIds.has(t.id)
-            const colors = tagColor(t.id)
-            return (
-              <button
-                key={t.id}
-                onClick={() => toggleTag(t.id)}
-                style={{
-                  padding: '0.1em 0.55em',
-                  borderRadius: '3px',
-                  border: `1px solid ${colors.color}`,
-                  background: active ? colors.background : 'transparent',
-                  color: active ? colors.color : colors.color,
-                  cursor: 'pointer',
-                  fontSize: '0.78em',
-                  opacity: active ? 1 : 0.55,
-                }}
-              >
-                {t.name}
-              </button>
-            )
+            const { background, color } = tagColor(t.id)
+            return <FilterPill key={t.id} label={t.name} active={selectedTagIds.has(t.id)}
+              background={background} color={color} onToggle={() => toggleTag(t.id)} />
           })}
         </div>
       )}
@@ -326,13 +304,13 @@ export default function VerbListPage() {
               </td>
               <td className="col-mobile-hide">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.3rem' }}>
-                  {tagsForPair(p.id).map(t => (
-                    <TagChip key={t.id} tag={t} onRemove={() => removeTag(p.id, t.id)} />
+                  {tagsForLexeme(p.lexeme_id ?? -1).map(t => (
+                    <TagChip key={t.id} tag={t} onRemove={() => removeTag(p.lexeme_id ?? -1, t.id)} />
                   ))}
                   <TagPicker
                     allTags={allTags}
-                    assignedTagIds={new Set(tagsForPair(p.id).map(t => t.id))}
-                    onAdd={name => addTag(p.id, name)}
+                    assignedTagIds={new Set(tagsForLexeme(p.lexeme_id ?? -1).map(t => t.id))}
+                    onAdd={name => addTag(p.lexeme_id ?? -1, name)}
                   />
                 </div>
               </td>

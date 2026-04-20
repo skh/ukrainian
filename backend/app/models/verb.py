@@ -11,12 +11,6 @@ class Tag(Base):
     name = Column(String, nullable=False, unique=True)
 
 
-class PairTag(Base):
-    __tablename__ = "pair_tags"
-
-    pair_id = Column(Integer, ForeignKey("aspect_pairs.id", ondelete="CASCADE"), primary_key=True)
-    tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
-
 
 class Verb(Base):
     __tablename__ = "verbs"
