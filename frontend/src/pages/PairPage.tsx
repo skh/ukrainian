@@ -57,6 +57,12 @@ export default function PairPage() {
     })
   }, [pairId])
 
+  async function deletePair() {
+    if (!confirm('Delete this solo pair?')) return
+    await api.delete(`/aspect-pairs/${pairId}`)
+    window.location.href = '/verbs'
+  }
+
   async function createFamilyWithPair() {
     const f = await api.post<WordFamily>('/word-families', {})
     const lexemes = await api.get<Lexeme[]>('/lexemes')
@@ -95,6 +101,9 @@ export default function PairPage() {
       <p style={{ margin: '0 0 0.5rem', fontSize: '0.85em' }}>
         {pair.ipf_verb_id != null && (
           <><Link to={`/verbs/${pair.ipf_verb_id}/edit`}>edit imperfective</Link>{pair.pf_verb_id != null && ' · '}</>
+        )}
+        {(pair.ipf_verb_id == null || pair.pf_verb_id == null) && (
+          <><button onClick={deletePair} style={{ fontSize: '0.85em', color: '#c00', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>delete solo pair</button>{pair.pf_verb_id != null && ' · '}</>
         )}
         {pair.pf_verb_id != null && (
           <Link to={`/verbs/${pair.pf_verb_id}/edit`}>edit perfective</Link>
