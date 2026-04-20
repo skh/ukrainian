@@ -18,3 +18,4 @@ backend/data/
 # Misc
 .DS_Store
 *.log
+local/
