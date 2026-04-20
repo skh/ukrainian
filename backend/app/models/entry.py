@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from sqlalchemy import CheckConstraint, Column, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -54,18 +52,20 @@ class LexemeForm(Base):
     )
 
 
-class LexemeFrequency(Base):
-    __tablename__ = "lexeme_frequencies"
+class CefrEntry(Base):
+    __tablename__ = "cefr_entries"
 
-    id = Column(Integer, primary_key=True)
-    lexeme_id = Column(Integer, ForeignKey("lexemes.id", ondelete="CASCADE"), nullable=False)
-    corpus = Column(String, nullable=False)
-    ipm = Column(Float, nullable=False)
-    fetched_at = Column(DateTime, nullable=False)
+    lemma = Column(String, primary_key=True)
+    level = Column(String, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("lexeme_id", "corpus", name="uq_lexeme_frequencies"),
-    )
+
+class CorpusLemmaFrequency(Base):
+    __tablename__ = "corpus_lemma_frequencies"
+
+    corpus = Column(String, primary_key=True)
+    lemma  = Column(String, primary_key=True)
+    freq   = Column(Integer, nullable=False)
+    ipm    = Column(Float, nullable=False)
 
 
 # Keep old names as aliases

@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -29,7 +29,8 @@ class Verb(Base):
     variant_of = Column(Integer, ForeignKey("verbs.id"), nullable=True)
 
     forms = relationship("LexemeForm", foreign_keys="[LexemeForm.verb_id]", cascade="all, delete-orphan")
-    canonical = relationship("Verb", foreign_keys=[variant_of], remote_side="[Verb.id]")
+    canonical = relationship("Verb", foreign_keys=[variant_of], remote_side="[Verb.id]", back_populates="variants")
+    variants = relationship("Verb", foreign_keys="[Verb.variant_of]", back_populates="canonical")
 
     __table_args__ = (
         CheckConstraint("aspect IN ('ipf', 'pf')", name="ck_verbs_aspect"),
@@ -54,20 +55,6 @@ class AspectPair(Base):
     __table_args__ = (
         UniqueConstraint("ipf_verb_id", "pf_verb_id", name="uq_aspect_pairs"),
         CheckConstraint("ipf_verb_id IS NOT NULL OR pf_verb_id IS NOT NULL", name="ck_aspect_pairs_not_both_null"),
-    )
-
-
-class VerbFrequency(Base):
-    __tablename__ = "verb_frequencies"
-
-    id = Column(Integer, primary_key=True)
-    verb_id = Column(Integer, ForeignKey("verbs.id", ondelete="CASCADE"), nullable=False)
-    corpus = Column(String, nullable=False)
-    ipm = Column(Float, nullable=False)
-    fetched_at = Column(DateTime, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("verb_id", "corpus", name="uq_verb_frequencies"),
     )
 
 

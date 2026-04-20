@@ -1,23 +1,20 @@
-from datetime import datetime
-
 from pydantic import BaseModel
 
 
-class FrequencyRead(BaseModel):
-    id: int
+class VerbFrequencyOut(BaseModel):
     verb_id: int
     corpus: str
+    freq: int
     ipm: float
-    fetched_at: datetime
+    variant_of: int | None = None
 
     model_config = {"from_attributes": True}
 
 
-class LexemeFrequencyRead(BaseModel):
-    id: int
+class LexemeFrequencyOut(BaseModel):
     lexeme_id: int
     corpus: str
+    freq: int
     ipm: float
-    fetched_at: datetime
 
     model_config = {"from_attributes": True}

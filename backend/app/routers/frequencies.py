@@ -1,123 +1,92 @@
-from datetime import datetime, timezone
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.crud import get_or_404
 from app.database import get_db
-from app.models.verb import AspectPair, Verb, VerbFrequency
-from app.models.entry import Lexeme, LexemeFrequency
-from app import sketchengine
-from app.schemas.frequency import FrequencyRead, LexemeFrequencyRead
-from app.utils import strip_accent
+from app.models.verb import AspectPair, Verb
+from app.models.entry import CefrEntry, CorpusLemmaFrequency, Lexeme
+from app.schemas.frequency import VerbFrequencyOut, LexemeFrequencyOut
 
 router = APIRouter(tags=["frequencies"])
 
 
-@router.get("/api/corpora", response_model=list[str])
-def list_corpora():
-    return sketchengine.configured_corpora()
+@router.get("/api/cefr", response_model=dict[str, str])
+def get_cefr(db: Session = Depends(get_db)):
+    rows = db.execute(select(CefrEntry)).scalars().all()
+    return {r.lemma: r.level for r in rows}
 
 
-@router.get("/api/frequencies", response_model=list[FrequencyRead])
+@router.get("/api/frequencies", response_model=list[VerbFrequencyOut])
 def get_all_frequencies(db: Session = Depends(get_db)):
-    return db.execute(select(VerbFrequency)).scalars().all()
+    verbs = db.execute(select(Verb)).scalars().all()
+    by_infinitive: dict[str, list[int]] = {}
+    for v in verbs:
+        by_infinitive.setdefault(v.infinitive.lower(), []).append(v.id)
+
+    clf_rows = db.execute(
+        select(CorpusLemmaFrequency)
+        .where(CorpusLemmaFrequency.lemma.in_(by_infinitive))
+    ).scalars().all()
+
+    out = []
+    verb_variant_of = {v.id: v.variant_of for v in verbs}
+    for clf in clf_rows:
+        for verb_id in by_infinitive[clf.lemma]:
+            out.append({"verb_id": verb_id, "corpus": clf.corpus, "freq": clf.freq, "ipm": clf.ipm, "variant_of": verb_variant_of[verb_id]})
+    return out
 
 
-@router.get("/api/pairs/{pair_id}/frequencies", response_model=list[FrequencyRead])
+@router.get("/api/pairs/{pair_id}/frequencies", response_model=list[VerbFrequencyOut])
 def get_pair_frequencies(pair_id: int, db: Session = Depends(get_db)):
     pair = get_or_404(db, AspectPair, pair_id)
     verb_ids = [vid for vid in [pair.ipf_verb_id, pair.pf_verb_id] if vid is not None]
-    return db.execute(
-        select(VerbFrequency)
-        .where(VerbFrequency.verb_id.in_(verb_ids))
-        .order_by(VerbFrequency.corpus, VerbFrequency.verb_id)
+    verbs = db.execute(select(Verb).where(Verb.id.in_(verb_ids))).scalars().all()
+    variant_verbs = db.execute(select(Verb).where(Verb.variant_of.in_(verb_ids))).scalars().all()
+    all_verbs = list(verbs) + list(variant_verbs)
+
+    by_infinitive: dict[str, list[tuple[int, int | None]]] = {}
+    for v in all_verbs:
+        by_infinitive.setdefault(v.infinitive.lower(), []).append((v.id, v.variant_of))
+
+    clf_rows = db.execute(
+        select(CorpusLemmaFrequency)
+        .where(CorpusLemmaFrequency.lemma.in_(by_infinitive))
+        .order_by(CorpusLemmaFrequency.corpus)
     ).scalars().all()
 
-
-@router.post("/api/pairs/{pair_id}/fetch-frequency", response_model=list[FrequencyRead])
-def fetch_pair_frequency(pair_id: int, corpus: str, db: Session = Depends(get_db)):
-    pair = get_or_404(db, AspectPair, pair_id)
-
-    if corpus not in sketchengine.configured_corpora():
-        raise HTTPException(status_code=400, detail=f"Unknown corpus: {corpus}")
-
-    verb_pairs = []
-    for verb_id in [pair.ipf_verb_id, pair.pf_verb_id]:
-        if verb_id is not None:
-            v = db.get(Verb, verb_id)
-            if v:
-                verb_pairs.append((verb_id, v))
-
-    try:
-        verb_ipms = [(vid, sketchengine.fetch_ipm(corpus, strip_accent(v.infinitive))) for vid, v in verb_pairs]
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Sketch Engine error: {e}")
-
-    now = datetime.now(timezone.utc)
-    results = []
-    for verb_id, ipm in verb_ipms:
-        row = db.execute(
-            select(VerbFrequency).where(
-                VerbFrequency.verb_id == verb_id,
-                VerbFrequency.corpus == corpus,
-            )
-        ).scalar_one_or_none()
-        if row:
-            row.ipm = ipm
-            row.fetched_at = now
-        else:
-            row = VerbFrequency(verb_id=verb_id, corpus=corpus, ipm=ipm, fetched_at=now)
-            db.add(row)
-        results.append(row)
-
-    db.commit()
-    for r in results:
-        db.refresh(r)
-    return results
+    out = []
+    for clf in clf_rows:
+        for verb_id, variant_of in sorted(by_infinitive[clf.lemma]):
+            out.append({"verb_id": verb_id, "corpus": clf.corpus, "freq": clf.freq, "ipm": clf.ipm, "variant_of": variant_of})
+    return out
 
 
-@router.get("/api/lexeme-frequencies", response_model=list[LexemeFrequencyRead])
+@router.get("/api/lexeme-frequencies", response_model=list[LexemeFrequencyOut])
 def get_all_lexeme_frequencies(db: Session = Depends(get_db)):
-    return db.execute(select(LexemeFrequency)).scalars().all()
+    lexemes = db.execute(select(Lexeme)).scalars().all()
+    by_lemma: dict[str, list[int]] = {}
+    for lex in lexemes:
+        by_lemma.setdefault(lex.lemma.lower(), []).append(lex.id)
 
-
-@router.get("/api/lexemes/{lexeme_id}/frequencies", response_model=list[LexemeFrequencyRead])
-def get_lexeme_frequencies(lexeme_id: int, db: Session = Depends(get_db)):
-    get_or_404(db, Lexeme, lexeme_id)
-    return db.execute(
-        select(LexemeFrequency).where(LexemeFrequency.lexeme_id == lexeme_id)
-        .order_by(LexemeFrequency.corpus)
+    clf_rows = db.execute(
+        select(CorpusLemmaFrequency)
+        .where(CorpusLemmaFrequency.lemma.in_(by_lemma))
     ).scalars().all()
 
+    out = []
+    for clf in clf_rows:
+        for lex_id in by_lemma[clf.lemma]:
+            out.append({"lexeme_id": lex_id, "corpus": clf.corpus, "freq": clf.freq, "ipm": clf.ipm})
+    return out
 
-@router.post("/api/lexemes/{lexeme_id}/fetch-frequency", response_model=LexemeFrequencyRead)
-def fetch_lexeme_frequency(lexeme_id: int, corpus: str, db: Session = Depends(get_db)):
+
+@router.get("/api/lexemes/{lexeme_id}/frequencies", response_model=list[LexemeFrequencyOut])
+def get_lexeme_frequencies(lexeme_id: int, db: Session = Depends(get_db)):
     lex = get_or_404(db, Lexeme, lexeme_id)
-
-    if corpus not in sketchengine.configured_corpora():
-        raise HTTPException(status_code=400, detail=f"Unknown corpus: {corpus}")
-
-    try:
-        ipm = sketchengine.fetch_ipm(corpus, lex.lemma)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Sketch Engine error: {e}")
-
-    now = datetime.now(timezone.utc)
-    row = db.execute(
-        select(LexemeFrequency).where(
-            LexemeFrequency.lexeme_id == lexeme_id,
-            LexemeFrequency.corpus == corpus,
-        )
-    ).scalar_one_or_none()
-    if row:
-        row.ipm = ipm
-        row.fetched_at = now
-    else:
-        row = LexemeFrequency(lexeme_id=lexeme_id, corpus=corpus, ipm=ipm, fetched_at=now)
-        db.add(row)
-
-    db.commit()
-    db.refresh(row)
-    return row
+    rows = db.execute(
+        select(CorpusLemmaFrequency)
+        .where(CorpusLemmaFrequency.lemma == lex.lemma.lower())
+        .order_by(CorpusLemmaFrequency.corpus)
+    ).scalars().all()
+    return [{"lexeme_id": lexeme_id, "corpus": r.corpus, "freq": r.freq, "ipm": r.ipm} for r in rows]
