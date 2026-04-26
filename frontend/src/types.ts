@@ -186,6 +186,12 @@ export interface VerbFormRead {
   form: string
 }
 
+export interface DrillConfig {
+  id: number
+  name: string
+  config: string  // JSON
+}
+
 export interface Derivation {
   id: number
   source_verb_id: number

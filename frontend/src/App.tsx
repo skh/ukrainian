@@ -20,6 +20,7 @@ import QuickAddPage from './pages/QuickAddPage'
 import DeclinablePage from './pages/DeclinablePage'
 import AddDeclinablePage from './pages/AddDeclinablePage'
 import DeclinablesListPage from './pages/DeclinablesListPage'
+import CustomDrillsPage from './pages/CustomDrillsPage'
 
 export default function App() {
   return (
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/numerals" element={<DeclinablesListPage pos="numeral" />} />
         <Route path="/numerals/add" element={<AddDeclinablePage pos="numeral" />} />
         <Route path="/numerals/:id" element={<DeclinablePage pos="numeral" />} />
+        <Route path="/custom-drills" element={<CustomDrillsPage />} />
       </Routes>
     </BrowserRouter>
   )

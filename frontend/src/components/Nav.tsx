@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { label: 'Dictionary', path: '/words' },
   { label: 'Quick add',  path: '/quick-add' },
   { label: 'Drills',     path: '/drill' },
+  { label: 'Custom drills', path: '/custom-drills' },
   { label: 'Analyze',    path: '/analyze' },
   { label: 'Chunks',     path: '/chunks' },
   { label: 'Word families', path: '/word-families' },

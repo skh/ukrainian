@@ -89,10 +89,15 @@ export function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
+export function formSlotKey(f: VerbForm): string {
+  return [f.tense, f.person, f.number, f.gender].filter(Boolean).join(',')
+}
+
 export function generateAspectQuestion(
   verbsMap: Map<number, Verb>,
   ps: AspectPair[],
   fMap: Map<number, VerbForm[]>,
+  formSlots?: Set<string>,
 ): Question | null {
   const eligible = ps.filter(p =>
     p.ipf_verb_id != null && p.pf_verb_id != null &&
@@ -111,9 +116,12 @@ export function generateAspectQuestion(
   const sourceVerb = verbsMap.get(sourceId)!
 
   // Ignore synthetic future (ipf future). Only use: present (ipf), future (pf), imperative, past.
-  const candidateForms = sourceForms.filter(f =>
+  let candidateForms = sourceForms.filter(f =>
     !(f.tense === 'future' && sourceVerb.aspect === 'ipf')
   )
+  if (formSlots && formSlots.size > 0) {
+    candidateForms = candidateForms.filter(f => formSlots.has(formSlotKey(f)))
+  }
   if (candidateForms.length === 0) return null
 
   const sourceForm = pickRandom(candidateForms)
@@ -153,6 +161,7 @@ export function generateAspectQuestion(
 export function generateInfinitiveQuestion(
   verbsMap: Map<number, Verb>,
   fMap: Map<number, VerbForm[]>,
+  formSlots?: Set<string>,
 ): Question | null {
   const verbsWithForms = Array.from(fMap.keys())
   if (verbsWithForms.length === 0) return null
@@ -161,7 +170,11 @@ export function generateInfinitiveQuestion(
   const verb = verbsMap.get(verbId)
   if (!verb) return null
 
-  const forms = fMap.get(verbId)!
+  const allForms = fMap.get(verbId)!
+  const forms = (formSlots && formSlots.size > 0)
+    ? allForms.filter(f => formSlots.has(formSlotKey(f)))
+    : allForms
+  if (forms.length === 0) return null
   const form = pickRandom(forms)
   const correctForm = selectForm(form.form, form.tense, form.person, form.number)
 
@@ -257,6 +270,7 @@ export function generateTranslationQuestion(
 export function generateNumberQuestion(
   verbsMap: Map<number, Verb>,
   fMap: Map<number, VerbForm[]>,
+  formSlots?: Set<string>,
 ): Question | null {
   const verbsWithForms = Array.from(fMap.keys())
   if (verbsWithForms.length === 0) return null
@@ -266,11 +280,14 @@ export function generateNumberQuestion(
   if (!verb) return null
   const forms = fMap.get(verbId)!
 
-  const eligible = forms.filter(
+  let eligible = forms.filter(
     f =>
       (f.tense === 'present' || (f.tense === 'future' && verb.aspect === 'pf')) &&
       f.number !== null,
   )
+  if (formSlots && formSlots.size > 0) {
+    eligible = eligible.filter(f => formSlots.has(formSlotKey(f)))
+  }
   if (eligible.length === 0) return null
 
   const sourceForm = pickRandom(eligible)

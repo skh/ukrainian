@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { api } from '../api/client'
 import { stripAccent } from '../utils/forms'
-import { Verb, Tag, PairTranslation, AspectPair, VerbFormRead, Chunk, ChunkLink, Entry } from '../types'
+import { Verb, Tag, PairTranslation, AspectPair, VerbFormRead, Chunk, ChunkLink, Entry, DrillConfig } from '../types'
 import { aspectBg } from '../utils/theme'
 import { FormsTable } from '../components/FormsTable'
 import { TagPicker } from '../widgets/TagPicker'
@@ -328,6 +328,16 @@ export default function DrillPage() {
 
   const [drillMode, setDrillMode] = useState<'verbs' | 'chunks' | 'mixed'>('verbs')
   const [reDrillMode, setReDrillMode] = useState(false)
+
+  // Form slot filters (empty = all forms active)
+  const [aspectFormSlots, setAspectFormSlots] = useState<Set<string>>(new Set())
+  const [infinitiveFormSlots, setInfinitiveFormSlots] = useState<Set<string>>(new Set())
+  const [numberFormSlots, setNumberFormSlots] = useState<Set<string>>(new Set())
+
+  // Custom drill selection
+  const [drillStyleMode, setDrillStyleMode] = useState<'standard' | 'custom'>('standard')
+  const [savedConfigs, setSavedConfigs] = useState<DrillConfig[]>([])
+  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null)
   const [question, setQuestion] = useState<Question | ChunkQuestion | null>(null)
   const [userAnswer, setUserAnswer] = useState('')
   const [history, setHistory] = useState<HistoryEntry[]>([])
@@ -335,6 +345,10 @@ export default function DrillPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const continueRef = useRef<HTMLButtonElement>(null)
   const newDrillRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    api.get<DrillConfig[]>('/drill-configs').then(setSavedConfigs)
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -348,11 +362,23 @@ export default function DrillPage() {
     ]).then(([vs, ps, fs, tags, pts, trs, chunks]) => {
       setVerbs(vs)
       setPairs(ps)
-      const map = new Map<number, VerbFormRead[]>()
+      // Merge all rows for the same (verb_id, slot) into one by joining their
+      // form strings. selectForm then picks the canonical alternative from the
+      // merged list using its preference rules (ся>сь, -ть>-те, -м>-мо, etc.)
+      const slotMap = new Map<string, { verbId: number; base: VerbFormRead; forms: string[] }>()
       for (const f of fs) {
-        const arr = map.get(f.verb_id) ?? []
-        arr.push(f)
-        map.set(f.verb_id, arr)
+        const slot = `${f.verb_id}:${f.tense},${f.person ?? ''},${f.number ?? ''},${f.gender ?? ''}`
+        if (!slotMap.has(slot)) {
+          slotMap.set(slot, { verbId: f.verb_id, base: f, forms: [f.form] })
+        } else {
+          slotMap.get(slot)!.forms.push(f.form)
+        }
+      }
+      const map = new Map<number, VerbFormRead[]>()
+      for (const { verbId, base, forms } of slotMap.values()) {
+        const arr = map.get(verbId) ?? []
+        arr.push({ ...base, form: forms.join(', ') })
+        map.set(verbId, arr)
       }
       setFormsByVerbId(map)
       setAllTags(tags)
@@ -421,11 +447,11 @@ export default function DrillPage() {
     for (let attempts = 0; attempts < 20; attempts++) {
       const type = pickRandom(types)
       const q = type === 'aspect'
-        ? generateAspectQuestion(verbsMap, filteredPairs, filteredForms)
+        ? generateAspectQuestion(verbsMap, filteredPairs, filteredForms, aspectFormSlots)
         : type === 'infinitive'
-        ? generateInfinitiveQuestion(verbsMap, filteredForms)
+        ? generateInfinitiveQuestion(verbsMap, filteredForms, infinitiveFormSlots)
         : type === 'number'
-        ? generateNumberQuestion(verbsMap, filteredForms)
+        ? generateNumberQuestion(verbsMap, filteredForms, numberFormSlots)
         : generateTranslationQuestion(verbsMap, filteredForms, verbToLexemeId, pairTranslations)
       if (q) return q
     }
@@ -470,6 +496,20 @@ export default function DrillPage() {
     return Math.random() < 0.5
       ? (pickQuestion() ?? pickChunkQuestion())
       : (pickChunkQuestion() ?? pickQuestion())
+  }
+
+  function applyConfig(cfg: DrillConfig) {
+    try {
+      const d = JSON.parse(cfg.config)
+      if (d.typeIn !== undefined) setTypeIn(d.typeIn)
+      if (d.useAspect !== undefined) setUseAspect(d.useAspect)
+      if (d.useInfinitive !== undefined) setUseInfinitive(d.useInfinitive)
+      if (d.useNumber !== undefined) setUseNumber(d.useNumber)
+      if (d.useTranslation !== undefined) setUseTranslation(d.useTranslation)
+      if (d.aspectFormSlots) setAspectFormSlots(new Set(d.aspectFormSlots))
+      if (d.infinitiveFormSlots) setInfinitiveFormSlots(new Set(d.infinitiveFormSlots))
+      if (d.numberFormSlots) setNumberFormSlots(new Set(d.numberFormSlots))
+    } catch { /* ignore malformed */ }
   }
 
   function nextQuestion() {
@@ -605,11 +645,14 @@ export default function DrillPage() {
     })
     const noneSelected = (verbScope === 'selection' && selectedPairIds.size === 0)
       || (verbScope === 'tag' && selectedTagId === null)
+    const customReady = drillStyleMode === 'custom' && selectedConfigId !== null
     const verbEnabled = drillMode !== 'chunks' && (useAspect || useInfinitive || useNumber || useTranslation) && !noneSelected
+      && (drillStyleMode === 'standard' || customReady)
     const chunkEnabled = drillMode !== 'verbs' && (useChunkTypeA || useChunkTypeB)
     const canStart = verbEnabled || chunkEnabled
     const showVerbs = drillMode === 'verbs' || drillMode === 'mixed'
     const showChunks = drillMode === 'chunks' || drillMode === 'mixed'
+
     return (
       <div>
         <Nav />
@@ -650,28 +693,71 @@ export default function DrillPage() {
         {showVerbs && (
         <div style={{ marginTop: '0.4rem' }}>
           <label>
-            <input type="checkbox" checked={useAspect} onChange={e => setUseAspect(e.target.checked)} />{' '}
-            Aspect form drill
+            <input
+              type="radio"
+              checked={drillStyleMode === 'standard'}
+              onChange={() => setDrillStyleMode('standard')}
+            />{' '}
+            Standard
           </label>
+          {drillStyleMode === 'standard' && (
+            <div style={{ marginLeft: '1.5rem', marginTop: '0.3rem', marginBottom: '0.5rem' }}>
+              <label>
+                <input type="checkbox" checked={useAspect} onChange={e => setUseAspect(e.target.checked)} />{' '}
+                Aspect form drill
+              </label>
+              <br />
+              <label>
+                <input type="checkbox" checked={useInfinitive} onChange={e => setUseInfinitive(e.target.checked)} />{' '}
+                Infinitive → form drill
+              </label>
+              <br />
+              <label>
+                <input type="checkbox" checked={useNumber} onChange={e => setUseNumber(e.target.checked)} />{' '}
+                Singular/plural drill
+              </label>
+              <br />
+              <label>
+                <input type="checkbox" checked={useTranslation} onChange={e => setUseTranslation(e.target.checked)} />{' '}
+                Translation → form drill (present/future only)
+              </label>
+            </div>
+          )}
           <br />
           <label>
-            <input type="checkbox" checked={useInfinitive} onChange={e => setUseInfinitive(e.target.checked)} />{' '}
-            Infinitive → form drill
+            <input
+              type="radio"
+              checked={drillStyleMode === 'custom'}
+              onChange={() => setDrillStyleMode('custom')}
+            />{' '}
+            Custom drill
           </label>
-          <br />
-          <label>
-            <input type="checkbox" checked={useNumber} onChange={e => setUseNumber(e.target.checked)} />{' '}
-            Singular/plural drill
-          </label>
-          <br />
-          <label>
-            <input type="checkbox" checked={useTranslation} onChange={e => setUseTranslation(e.target.checked)} />{' '}
-            Translation → form drill (de, present/future only)
-          </label>
+          {drillStyleMode === 'custom' && (
+            <div style={{ marginLeft: '1.5rem', marginTop: '0.3rem' }}>
+              {savedConfigs.length === 0 ? (
+                <span style={{ fontSize: '0.9em', color: '#888' }}>
+                  No custom drills yet — <a href="/custom-drills">create one</a>
+                </span>
+              ) : (
+                <select
+                  value={selectedConfigId ?? ''}
+                  onChange={e => {
+                    const id = e.target.value ? Number(e.target.value) : null
+                    setSelectedConfigId(id)
+                    const cfg = savedConfigs.find(c => c.id === id)
+                    if (cfg) applyConfig(cfg)
+                  }}
+                >
+                  <option value="">— pick a drill —</option>
+                  {savedConfigs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              )}
+            </div>
+          )}
         </div>
         )}
         {showVerbs && (
-        <div style={{ marginTop: '0.5rem' }}>
+        <div style={{ marginTop: '0.75rem' }}>
           <label>
             <input type="radio" checked={verbScope === 'all'} onChange={() => setVerbScope('all')} />{' '}
             All verbs

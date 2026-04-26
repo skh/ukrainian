@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 import app.models  # noqa: F401 — ensures all models are registered with Base
-from app.routers import verbs, aspect_pairs, derivations, verb_forms, tags, chunks, frequencies, translations, word_families, lexemes, nouns, analyze, goroh, verbformen
+from app.routers import verbs, aspect_pairs, derivations, verb_forms, tags, chunks, frequencies, translations, word_families, lexemes, nouns, analyze, goroh, verbformen, drill_configs
 from app.routers.declinables import noun_router, adjective_router, pronoun_router, numeral_router
 
 app = FastAPI(redirect_slashes=False)
@@ -25,6 +25,7 @@ app.include_router(verbformen.router)
 app.include_router(adjective_router)
 app.include_router(pronoun_router)
 app.include_router(numeral_router)
+app.include_router(drill_configs.router)
 
 
 @app.get("/api/health")
