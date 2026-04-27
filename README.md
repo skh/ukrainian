@@ -1,19 +1,49 @@
-# Ukrainian Verb Drills
+# Ukrainian Learner's Dictionary
 
-A web app for drilling Ukrainian verb conjugation. The core unit is an **aspect pair** (imperfective + perfective), though solo verbs (a single verb with no aspect partner) are also supported.
+A personal web app for building and drilling a Ukrainian vocabulary. Started as a verb conjugation driller, now evolving into a full learner's dictionary covering all parts of speech.
 
-Features:
-- Add verbs with full conjugation paradigms (present/future, past, imperative)
-- Group verbs into aspect pairs; tag pairs for filtering
-- Collocations and translations (multiple languages) per pair
-- Frequency data from Sketch Engine (ipm, per corpus, on demand)
-- Drill modes: aspect switching, infinitive→form, singular↔plural; type-in or flashcard
-- Re-drill wrong answers from the summary screen
+**Stack:** FastAPI + SQLAlchemy (SQLite) · React + TypeScript + Vite
 
-## Prerequisites
+---
 
-- Python 3.11+
-- Node.js 18+ and npm
+## What it does
+
+### Dictionary
+All entries share a **lexeme** (headword with accent mark, POS, optional tags, CEFR level, corpus frequency). Supported POS:
+
+| POS | Features |
+|---|---|
+| Verb pairs | Aspect pair (ipf + pf), full conjugation paradigms, variants (e.g. stem-alternation forms) |
+| Nouns | Gender, number type, full declension table |
+| Adjectives, pronouns, numerals | Full declension table |
+| Adverbs, conjunctions, prepositions, particles | Headword + translations |
+
+Every entry can have:
+- Translations (multiple languages)
+- Tags (user-defined, filterable)
+- Corpus frequency (ipm from Sketch Engine CSV import)
+- CEFR level (imported from PULS wordlist)
+- Word family membership
+
+### Quick-add (goroh integration)
+Paste a goroh.org URL → automatically imports the word with accented form, POS, full paradigm, and German translation.
+
+### Text analysis
+Paste Ukrainian text → each word is looked up in the dictionary; unknown words can be quick-added inline.
+
+### Drills (verbs only)
+- **Standard:** aspect switching, infinitive→form, singular↔plural, translation→form
+- **Custom drills:** named templates with per-drill-type form slot selection (e.g. "past tense only", "1st person only"); managed on a separate page, selected from a dropdown on the drill page
+- Verb scope: all verbs, manual selection, or by tag
+- Type-in or flashcard mode; re-drill wrong answers
+
+### Chunks
+Ukrainian phrases/sentences with translations and optional verb/noun links. Drillable (Ukrainian→translate or target lang→give Ukrainian).
+
+### Word families
+Group lexemes into named families for thematic study.
+
+---
 
 ## Setup
 
@@ -22,10 +52,11 @@ Features:
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # then fill in your values
+cp .env.example .env        # fill in values
 alembic upgrade head
+uvicorn app.main:app --reload --port 8000
 ```
 
 ### Frontend
@@ -33,73 +64,49 @@ alembic upgrade head
 ```bash
 cd frontend
 npm install
-```
-
-## Running in development
-
-Open two terminals:
-
-**Terminal 1 — backend** (http://localhost:8000):
-
-```bash
-cd backend
-source .venv/bin/activate
-uvicorn app.main:app --reload --port 8000
-```
-
-**Terminal 2 — frontend** (http://localhost:5173):
-
-```bash
-cd frontend
 npm run dev
 ```
 
-Open http://localhost:5173. API requests are proxied by Vite to the backend — no CORS setup needed. Auto-generated API docs: http://localhost:8000/docs.
+Open http://localhost:5173. API proxied by Vite to port 8000. Swagger docs at http://localhost:8000/docs.
+
+---
 
 ## Environment variables (`backend/.env`)
 
 | Variable | Required | Description |
 |---|---|---|
 | `DATABASE_URL` | no | SQLAlchemy URL, defaults to `sqlite:///./local.db` |
-| `SKETCHENGINE_API_KEY` | for frequency fetch | Your Sketch Engine API key |
-| `SKETCHENGINE_CORPORA` | for frequency fetch | Comma-separated corpus IDs (e.g. `preloaded/uktenten22_rft2`) |
-| `TRANSLATION_LANGUAGES` | no | Languages for translations, defaults to `en,de` |
+| `SKETCHENGINE_API_KEY` | for frequency import | Sketch Engine API key |
+| `SKETCHENGINE_CORPORA` | for frequency import | Comma-separated corpus IDs |
+| `TRANSLATION_LANGUAGES` | no | Defaults to `en,de` |
+
+---
 
 ## Project structure
 
 ```
-.
-├── backend/
-│   ├── app/
-│   │   ├── main.py           # FastAPI app entry point
-│   │   ├── database.py       # SQLAlchemy engine, session, Base
-│   │   ├── crud.py           # Shared helpers (get_or_404)
-│   │   ├── sketchengine.py   # Sketch Engine API client
-│   │   ├── models/           # ORM models
-│   │   ├── routers/          # API route handlers
-│   │   └── schemas/          # Pydantic request/response schemas
-│   ├── migrations/           # Alembic migrations
-│   ├── requirements.txt
-│   ├── alembic.ini
-│   └── .env.example
-└── frontend/
-    ├── src/
-    │   ├── api/client.ts     # Typed fetch wrapper
-    │   ├── types.ts          # Shared TypeScript interfaces
-    │   ├── utils/            # Form helpers, drill generators, theme
-    │   ├── widgets/          # TagChip, TagPicker
-    │   ├── components/       # FormsTable
-    │   └── pages/            # VerbListPage, PairPage, DrillPage, …
-    ├── vite.config.ts
-    └── package.json
+backend/
+├── app/
+│   ├── main.py            # FastAPI entry point
+│   ├── database.py        # Engine + FK enforcement (PRAGMA foreign_keys=ON)
+│   ├── models/            # ORM: verbs, lexemes, nouns, chunks, word families,
+│   │                      #       drill configs, …
+│   ├── routers/           # One file per resource area
+│   ├── schemas/           # Pydantic schemas
+│   └── scripts/           # Frequency import, CEFR import
+├── migrations/            # Alembic migrations
+└── local.db               # SQLite DB (not committed)
+
+frontend/src/
+├── pages/                 # VerbListPage, PairPage, DrillPage, CustomDrillsPage,
+│                          #   NounsListPage, WordsListPage, ChunksListPage, …
+├── components/            # FormsTable, Nav
+├── widgets/               # FilterPill, FormSlotPicker, TagChip, TagPicker
+└── utils/                 # drillGenerators, drillSlots, forms, theme
 ```
 
-## Switching to PostgreSQL
+## Notes
 
-Set `DATABASE_URL` in `backend/.env`:
-
-```
-DATABASE_URL=postgresql://user:password@localhost/dbname
-```
-
-No other changes needed.
+- SQLite FK enforcement is on (`PRAGMA foreign_keys=ON` per connection); cascades are wired on all FK columns.
+- Frequency data is imported from Sketch Engine CSV exports (not fetched live).
+- CEFR levels are from the PULS wordlist (file not committed — place in `backend/local/cefr.csv`).
