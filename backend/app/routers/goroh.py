@@ -318,9 +318,15 @@ def _parse_article(block, db: Session) -> GorohCandidate | None:
     )
 
 
+def _normalize_apostrophes(word: str) -> str:
+    # Goroh only accepts ASCII apostrophe U+0027; normalize common Ukrainian
+    # variants (right single quote U+2019, modifier letter apostrophe U+02BC).
+    return word.replace('’', "'").replace('ʼ', "'")
+
+
 @router.get("/api/goroh-fetch", response_model=list[GorohCandidate])
 async def goroh_fetch(word: str = Query(..., min_length=1), db: Session = Depends(get_db)):
-    url = _GOROH_URL.format(word=quote(word, safe=''))
+    url = _GOROH_URL.format(word=quote(_normalize_apostrophes(word), safe=''))
     async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as client:
         try:
             resp = await client.get(url, headers=_HEADERS)
