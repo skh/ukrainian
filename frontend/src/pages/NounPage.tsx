@@ -8,6 +8,7 @@ import { TranslationRow } from '../components/TranslationRow'
 import { useTranslations } from '../hooks/useTranslations'
 import { CASE_LABELS, CASES, genderBg } from '../utils/nouns'
 import { FrequencySection } from '../components/FrequencySection'
+import { LexemeTagEditor } from '../widgets/LexemeTagEditor'
 
 export default function NounPage() {
   const { id } = useParams<{ id: string }>()
@@ -95,6 +96,7 @@ export default function NounPage() {
           </span>
         )}
       </h1>
+      {id && <LexemeTagEditor lexemeId={Number(id)} />}
 
       {langs.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>

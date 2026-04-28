@@ -8,6 +8,7 @@ import { TranslationRow } from '../components/TranslationRow'
 import { useTranslations } from '../hooks/useTranslations'
 import { CASE_LABELS, CASES } from '../utils/nouns'
 import { FrequencySection } from '../components/FrequencySection'
+import { LexemeTagEditor } from '../widgets/LexemeTagEditor'
 
 type DeclinablePos = 'adjective' | 'pronoun' | 'numeral'
 
@@ -92,6 +93,7 @@ export default function DeclinablePage({ pos }: Props) {
           {POS_LABEL[pos]}
         </span>
       </h1>
+      {id && <LexemeTagEditor lexemeId={Number(id)} />}
 
       {langs.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>

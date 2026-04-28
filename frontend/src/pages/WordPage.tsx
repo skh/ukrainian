@@ -6,6 +6,7 @@ import { Nav } from '../components/Nav'
 import { TranslationRow } from '../components/TranslationRow'
 import { useTranslations } from '../hooks/useTranslations'
 import { FrequencySection } from '../components/FrequencySection'
+import { LexemeTagEditor } from '../widgets/LexemeTagEditor'
 
 export default function WordPage() {
   const { id } = useParams<{ id: string }>()
@@ -53,6 +54,7 @@ export default function WordPage() {
       <Nav />
       <h1>{word.accented}</h1>
       <p className="text-muted">{word.pos}</p>
+      {id && <LexemeTagEditor lexemeId={Number(id)} />}
 
       {langs.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>

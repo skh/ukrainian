@@ -5,11 +5,11 @@ import { TranslationRow } from '../components/TranslationRow'
 import { api } from '../api/client'
 import { FormsTable } from '../components/FormsTable'
 import { VerbFormData } from '../utils/gorohParser'
-import { Tag, Chunk, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
+import { Chunk, VerbFrequency, AspectPair, WordFamily, Lexeme } from '../types'
 import { aspectBg } from '../utils/theme'
 import { gorohUrl } from '../config'
 import { CefrLevel, cefrColor, cefrTextColor } from '../utils/cefr'
-import { TagChip } from '../widgets/TagChip'
+import { LexemeTagEditor } from '../widgets/LexemeTagEditor'
 import { useTranslations } from '../hooks/useTranslations'
 
 export default function PairPage() {
@@ -19,7 +19,6 @@ export default function PairPage() {
   const [pair, setPair] = useState<AspectPair | null>(null)
   const [ipfForms, setIpfForms] = useState<VerbFormData[]>([])
   const [pfForms, setPfForms] = useState<VerbFormData[]>([])
-  const [tags, setTags] = useState<Tag[]>([])
   const [chunks, setChunks] = useState<Chunk[]>([])
 
   const [frequencies, setFrequencies] = useState<VerbFrequency[]>([])
@@ -34,17 +33,15 @@ export default function PairPage() {
   useEffect(() => {
     api.get<AspectPair>(`/aspect-pairs/${pairId}`).then(async p => {
       setPair(p)
-      const [ipf, pf, ts, cks, freqs, cefr] = await Promise.all([
+      const [ipf, pf, cks, freqs, cefr] = await Promise.all([
         p.ipf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.ipf_verb_id}/forms`) : Promise.resolve([]),
         p.pf_verb_id != null ? api.get<VerbFormData[]>(`/verbs/${p.pf_verb_id}/forms`) : Promise.resolve([]),
-        p.lexeme_id != null ? api.get<Tag[]>(`/lexemes/${p.lexeme_id}/tags`) : Promise.resolve([]),
         api.get<Chunk[]>(`/pairs/${pairId}/chunks`),
         api.get<VerbFrequency[]>(`/pairs/${pairId}/frequencies`),
         api.get<Record<string, string>>('/cefr'),
       ])
       setIpfForms(ipf)
       setPfForms(pf)
-      setTags(ts)
       setChunks(cks)
       setFrequencies(freqs)
       setCefrByLemma(new Map(Object.entries(cefr)))
@@ -95,7 +92,7 @@ export default function PairPage() {
             </a>
           )}
         </h1>
-        {tags.map(t => <TagChip key={t.id} tag={t} onRemove={() => {}} />)}
+        {pair.lexeme_id != null && <LexemeTagEditor lexemeId={pair.lexeme_id} />}
       </div>
 
       <p style={{ margin: '0 0 0.5rem', fontSize: '0.85em' }}>
