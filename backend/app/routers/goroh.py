@@ -33,6 +33,8 @@ _POS_MAP = {
     "прийменник": "preposition",
     "сполучник": "conjunction",
     "частка": "particle",
+    "присудкове слово": "predicative",
+    "предикатив": "predicative",
 }
 
 _GENDER_MAP = {

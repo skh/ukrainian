@@ -24,6 +24,7 @@ const posBg: Record<string, string> = {
   preposition: '#e0f2fe',
   pronoun:     '#fae8ff',
   particle:    '#fef3c7',
+  predicative: '#ecfdf5',
   pair:        '#ffffff',
 }
 
