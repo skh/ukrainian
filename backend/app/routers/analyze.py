@@ -58,7 +58,7 @@ class TokenMatch(BaseModel):
 class AnalyzedToken(BaseModel):
     text: str
     is_word: bool
-    match: Optional[TokenMatch] = None
+    matches: list[TokenMatch] = []
 
 
 class AnalyzeResponse(BaseModel):
@@ -66,16 +66,21 @@ class AnalyzeResponse(BaseModel):
     unknown: list[str]
 
 
-def _build_lookup(db: Session) -> dict[str, Lexeme]:
-    lookup: dict[str, Lexeme] = {}
+def _build_lookup(db: Session) -> dict[str, list[Lexeme]]:
+    lookup: dict[str, list[Lexeme]] = {}
+
+    def _add(key: str, lex: Lexeme) -> None:
+        if not key:
+            return
+        bucket = lookup.setdefault(key, [])
+        if not any(l.id == lex.id for l in bucket):
+            bucket.append(lex)
 
     # Noun/word inflected forms
     for lf in db.execute(select(LexemeForm).where(LexemeForm.lexeme_id.isnot(None))).scalars().all():
-        key = normalize(lf.form)
-        if key not in lookup:
-            lex = db.get(Lexeme, lf.lexeme_id)
-            if lex:
-                lookup[key] = lex
+        lex = db.get(Lexeme, lf.lexeme_id)
+        if lex:
+            _add(normalize(lf.form), lex)
 
     # Verb inflected forms → pair lexeme
     verb_to_pair: dict[int, Lexeme] = {}
@@ -93,21 +98,18 @@ def _build_lookup(db: Session) -> dict[str, Lexeme]:
             verb_to_pair[v.id] = verb_to_pair[v.variant_of]
 
     for lf in db.execute(select(LexemeForm).where(LexemeForm.verb_id.isnot(None))).scalars().all():
-        key = normalize(lf.form)
-        if key not in lookup and lf.verb_id in verb_to_pair:
-            lookup[key] = verb_to_pair[lf.verb_id]
+        if lf.verb_id in verb_to_pair:
+            _add(normalize(lf.form), verb_to_pair[lf.verb_id])
 
     # Verb infinitives
     for v in db.execute(select(Verb)).scalars().all():
-        key = normalize(v.infinitive)
-        if key not in lookup and v.id in verb_to_pair:
-            lookup[key] = verb_to_pair[v.id]
+        if v.id in verb_to_pair:
+            _add(normalize(v.infinitive), verb_to_pair[v.id])
 
     # Lexeme lemmas / accented forms (non-pair)
     for lex in db.execute(select(Lexeme).where(Lexeme.pos != 'pair')).scalars().all():
         for candidate in [normalize(lex.lemma), normalize(lex.accented)]:
-            if candidate and candidate not in lookup:
-                lookup[candidate] = lex
+            _add(candidate, lex)
 
     return lookup
 
@@ -172,12 +174,15 @@ def analyze_text(body: AnalyzeRequest, db: Session = Depends(get_db)):
 
         word = m.group()
         key = normalize(word)
-        lex = lookup.get(key)
+        lexemes = lookup.get(key, [])
 
-        if lex:
-            if lex.id not in match_cache:
-                match_cache[lex.id] = _build_match(lex, db)
-            tokens.append(AnalyzedToken(text=word, is_word=True, match=match_cache[lex.id]))
+        if lexemes:
+            matches: list[TokenMatch] = []
+            for lex in lexemes:
+                if lex.id not in match_cache:
+                    match_cache[lex.id] = _build_match(lex, db)
+                matches.append(match_cache[lex.id])
+            tokens.append(AnalyzedToken(text=word, is_word=True, matches=matches))
         else:
             tokens.append(AnalyzedToken(text=word, is_word=True))
             unknown_set.add(key)

@@ -5,22 +5,11 @@ import { CandidateCard, entryPath } from '../components/GorohLookup'
 import { api } from '../api/client'
 import { AnalyzedToken, AnalysisTokenMatch, AnalyzeResponse, GorohCandidate } from '../types'
 
-function Tooltip({ match, x, y }: { match: AnalysisTokenMatch; x: number; y: number }) {
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-  const left = Math.min(x + 14, vw - 340)
-  const top = Math.min(y + 14, vh - 200)
-
+function MatchEntry({ match }: { match: AnalysisTokenMatch }) {
   return (
-    <div style={{
-      position: 'fixed', left, top, zIndex: 1000,
-      background: 'white', border: '1px solid #ccc', borderRadius: '6px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-      padding: '0.6rem 0.8rem', maxWidth: '320px', fontSize: '0.82em',
-      pointerEvents: 'none',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginBottom: '0.3rem' }}>
-        <strong style={{ fontSize: '1.1em' }}>{match.accented}</strong>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginBottom: '0.2rem' }}>
+        <strong style={{ fontSize: '1.05em' }}>{match.accented}</strong>
         <span className="badge text-dim" style={{ background: '#e5e7eb' }}>{match.pos}</span>
       </div>
       {match.translations.length > 0 && (
@@ -36,13 +25,37 @@ function Tooltip({ match, x, y }: { match: AnalysisTokenMatch; x: number; y: num
   )
 }
 
+function Tooltip({ matches, x, y }: { matches: AnalysisTokenMatch[]; x: number; y: number }) {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const left = Math.min(x + 14, vw - 340)
+  const top = Math.min(y + 14, vh - 240)
+
+  return (
+    <div style={{
+      position: 'fixed', left, top, zIndex: 1000,
+      background: 'white', border: '1px solid #ccc', borderRadius: '6px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      padding: '0.6rem 0.8rem', maxWidth: '320px', fontSize: '0.82em',
+      pointerEvents: 'none',
+    }}>
+      {matches.map((m, i) => (
+        <div key={m.lexeme_id}>
+          {i > 0 && <hr style={{ margin: '0.4rem 0', borderColor: '#eee' }} />}
+          <MatchEntry match={m} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 
 export default function TextAnalysisPage() {
   const [inputText, setInputText] = useState('')
   const [tokens, setTokens] = useState<AnalyzedToken[]>([])
   const [unknown, setUnknown] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  const [tooltip, setTooltip] = useState<{ match: AnalysisTokenMatch; x: number; y: number } | null>(null)
+  const [tooltip, setTooltip] = useState<{ matches: AnalysisTokenMatch[]; x: number; y: number } | null>(null)
 
   // goroh lookup state for unknown words
   const [activeWord, setActiveWord] = useState<string | null>(null)
@@ -97,14 +110,14 @@ export default function TextAnalysisPage() {
     setSelectedId(null)
   }
 
-  const handleMouseEnter = useCallback((match: AnalysisTokenMatch, e: React.MouseEvent) => {
-    setTooltip({ match, x: e.clientX, y: e.clientY })
+  const handleMouseEnter = useCallback((matches: AnalysisTokenMatch[], e: React.MouseEvent) => {
+    setTooltip({ matches, x: e.clientX, y: e.clientY })
   }, [])
 
   const handleMouseLeave = useCallback(() => setTooltip(null), [])
 
-  const handleMouseMove = useCallback((match: AnalysisTokenMatch, e: React.MouseEvent) => {
-    setTooltip(prev => prev ? { match, x: e.clientX, y: e.clientY } : null)
+  const handleMouseMove = useCallback((matches: AnalysisTokenMatch[], e: React.MouseEvent) => {
+    setTooltip(prev => prev ? { matches, x: e.clientX, y: e.clientY } : null)
   }, [])
 
   return (
@@ -131,7 +144,7 @@ export default function TextAnalysisPage() {
             whiteSpace: 'pre-wrap', maxWidth: '700px',
           }}>
             {tokens.map((tok, i) => {
-              if (!tok.match) {
+              if (!tok.matches?.length) {
                 const norm = tok.text.toLowerCase().replace(/\u0301/g, '').replace(/['\u2019\u02BC]/g, '\u2019')
                 const isActive = activeWord !== null && norm === activeWord
                 if (!isActive) return <span key={i}>{tok.text}</span>
@@ -150,9 +163,9 @@ export default function TextAnalysisPage() {
                     padding: '0.05em 0.1em',
                     cursor: 'default',
                   }}
-                  onMouseEnter={e => handleMouseEnter(tok.match!, e)}
+                  onMouseEnter={e => handleMouseEnter(tok.matches!, e)}
                   onMouseLeave={handleMouseLeave}
-                  onMouseMove={e => handleMouseMove(tok.match!, e)}
+                  onMouseMove={e => handleMouseMove(tok.matches!, e)}
                 >
                   {tok.text}
                 </span>
@@ -220,7 +233,7 @@ export default function TextAnalysisPage() {
         </>
       )}
 
-      {tooltip && <Tooltip match={tooltip.match} x={tooltip.x} y={tooltip.y} />}
+      {tooltip && <Tooltip matches={tooltip.matches} x={tooltip.x} y={tooltip.y} />}
     </div>
   )
 }

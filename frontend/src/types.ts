@@ -139,7 +139,7 @@ export interface AnalysisTokenMatch {
 export interface AnalyzedToken {
   text: string
   is_word: boolean
-  match?: AnalysisTokenMatch
+  matches?: AnalysisTokenMatch[]
 }
 
 export interface AnalyzeResponse {
