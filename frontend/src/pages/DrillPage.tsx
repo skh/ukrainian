@@ -1066,7 +1066,7 @@ export default function DrillPage() {
         </>
       )}
       {' '}
-      <Link to="/">← Verbs</Link>
+      <Link to="/verbs">← Verbs</Link>
     </div>
   )
 }

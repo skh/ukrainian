@@ -1,9 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
 
-const DICTIONARY_PATHS = ['/', '/nouns', '/adjectives', '/pronouns', '/numerals', '/words']
+const DICTIONARY_PATHS = ['/', '/verbs', '/nouns', '/adjectives', '/pronouns', '/numerals', '/words']
 
 const NAV_ITEMS = [
-  { label: 'Dictionary', path: '/words' },
+  { label: 'Dictionary', path: '/' },
   { label: 'Quick add',  path: '/quick-add' },
   { label: 'Drills',     path: '/drill' },
   { label: 'Custom drills', path: '/custom-drills' },
@@ -14,7 +14,7 @@ const NAV_ITEMS = [
 
 export function Nav() {
   const { pathname } = useLocation()
-  const inDictionary = DICTIONARY_PATHS.some(p => p === '/' ? pathname === '/' : pathname.startsWith(p))
+  const inDictionary = pathname === '/' || DICTIONARY_PATHS.filter(p => p !== '/').some(p => pathname.startsWith(p))
 
   return (
     <nav style={{ marginBottom: '1rem', display: 'flex', gap: '0.15rem' }}>

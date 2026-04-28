@@ -26,7 +26,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<VerbListPage />} />
+        <Route path="/" element={<WordsListPage />} />
+        <Route path="/verbs" element={<VerbListPage />} />
         <Route path="/verbs/add" element={<AddVerbPage />} />
         <Route path="/verbs/:id/edit" element={<EditVerbPage />} />
         <Route path="/pairs/:id" element={<PairPage />} />

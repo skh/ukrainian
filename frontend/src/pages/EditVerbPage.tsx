@@ -6,6 +6,7 @@ import { FormsTable } from '../components/FormsTable'
 import { parseGoroh, VerbFormData } from '../utils/gorohParser'
 import { Verb, AspectPair, VerbFormRead, DerivationType, Derivation } from '../types'
 import { stripAccent } from '../utils/forms'
+import { aspectBg } from '../utils/theme'
 
 
 export default function EditVerbPage() {
@@ -286,20 +287,19 @@ async function editForm(id: number, value: string) {
       <h2>Aspect partners</h2>
       {pairs.length === 0
         ? <p>None.</p>
-        : <table>
-            <thead>
-              <tr><th>Imperfective</th><th>Perfective</th><th></th></tr>
-            </thead>
-            <tbody>
-              {pairs.map(p => (
-                <tr key={p.id}>
-                  <td>{p.ipf_verb?.accented ?? <em style={{ color: '#aaa' }}>—</em>}</td>
-                  <td>{p.pf_verb?.accented ?? <em style={{ color: '#aaa' }}>—</em>}</td>
-                  <td><button onClick={() => removeAspectPair(p.id)}>Remove</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        : <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.5rem' }}>
+            {pairs.map(p => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Link to={`/pairs/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'inline-flex', alignItems: 'center', gap: '0.15em' }}>
+                  {p.ipf_verb && <span className="badge" style={{ background: aspectBg.ipf }}>{p.ipf_verb.accented}</span>}
+                  {p.ipf_verb && p.pf_verb && <span style={{ color: '#bbb' }}>(</span>}
+                  {p.pf_verb && <span className="badge" style={{ background: aspectBg.pf }}>{p.pf_verb.accented}</span>}
+                  {p.ipf_verb && p.pf_verb && <span style={{ color: '#bbb' }}>)</span>}
+                </Link>
+                <button onClick={() => removeAspectPair(p.id)} style={{ fontSize: '0.8em' }}>Remove</button>
+              </div>
+            ))}
+          </div>
       }
       {(() => {
         const soloPair = pairs.find(p => p.ipf_verb_id === null || p.pf_verb_id === null)

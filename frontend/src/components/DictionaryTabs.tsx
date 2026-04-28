@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
 
 const TABS = [
-  { label: 'All',        path: '/words' },
-  { label: 'Verbs',      path: '/' },
+  { label: 'All',        path: '/' },
+  { label: 'Verbs',      path: '/verbs' },
   { label: 'Nouns',      path: '/nouns' },
   { label: 'Adjectives', path: '/adjectives' },
   { label: 'Pronouns',   path: '/pronouns' },
