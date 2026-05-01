@@ -85,6 +85,14 @@ export default function TrainingSessionPage() {
   const [question, setQuestion] = useState<TrainingQuestion | null>(null)
   const [revealed, setRevealed] = useState(false)
   const [count, setCount] = useState(0)
+  const [selectedBtn, setSelectedBtn] = useState(1)  // index into RATING_BTNS, default neutral
+
+  const RATING_BTNS: Array<{ label: string; rating: -1 | 0 | 1; accent?: boolean }> = [
+    { label: '😞', rating: -1 },
+    { label: '😬', rating: 0 },
+    { label: '😊', rating: 1 },
+    { label: 'наголос', rating: 1, accent: true },
+  ]
 
   useEffect(() => {
     async function init() {
@@ -241,6 +249,7 @@ export default function TrainingSessionPage() {
       if (q) {
         setQuestion(q)
         setRevealed(false)
+        setSelectedBtn(1)
         touchLastSeen(q.itemKey)
         return
       }
@@ -252,6 +261,25 @@ export default function TrainingSessionPage() {
       drawNext(drawPool, verbsMap, pairsMap, formsByVerbId, verbToLexemeId, pairTranslations, chunksMap)
     }
   }, [loading])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (!revealed) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRevealed(true); setSelectedBtn(1) }
+      } else {
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); setSelectedBtn(i => Math.max(0, i - 1)) }
+        if (e.key === 'ArrowRight') { e.preventDefault(); setSelectedBtn(i => Math.min(RATING_BTNS.length - 1, i + 1)) }
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          const btn = RATING_BTNS[selectedBtn]
+          handleRate(btn.rating, btn.accent)
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [revealed, selectedBtn, question, drawPool])
 
   async function handleRate(rating: -1 | 0 | 1, accent = false) {
     if (!question) return
@@ -336,22 +364,33 @@ export default function TrainingSessionPage() {
                 {question.answerText}
               </div>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
-                <button onClick={() => handleRate(-1)} style={{ ...btnStyle, color: '#c00', borderColor: '#c00', flex: 1 }}>
-                  -1
-                </button>
-                <button onClick={() => handleRate(0)} style={{ ...btnStyle, flex: 1 }}>
-                  0
-                </button>
-                <button onClick={() => handleRate(1)} style={{ ...btnStyle, color: '#080', borderColor: '#080', flex: 1 }}>
-                  +1
-                </button>
-                <button
-                  onClick={() => handleRate(1, true)}
-                  style={{ ...btnStyle, flex: 1.5, fontSize: '0.9em', color: '#555', background: '#f5f5f5' }}
-                  title="Knew it, but stress is uncertain — flags for future stress review"
-                >
-                  наголос
-                </button>
+                {RATING_BTNS.map((btn, i) => {
+                  const selected = i === selectedBtn
+                  const colorStyle = btn.rating === -1
+                    ? { color: '#c00', borderColor: selected ? '#c00' : '#ddd' }
+                    : btn.rating === 1 && !btn.accent
+                    ? { color: '#080', borderColor: selected ? '#080' : '#ddd' }
+                    : { color: '#555', borderColor: '#ddd' }
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleRate(btn.rating, btn.accent)}
+                      onMouseEnter={() => setSelectedBtn(i)}
+                      style={{
+                        ...btnStyle,
+                        ...colorStyle,
+                        flex: btn.accent ? 1.5 : 1,
+                        fontSize: btn.accent ? '0.9em' : '1.3em',
+                        background: selected ? '#f0f0f0' : '#fff',
+                        outline: selected ? '2px solid #aaa' : 'none',
+                        outlineOffset: '1px',
+                      }}
+                      title={btn.accent ? 'Knew it, but stress uncertain — flags for future stress review' : undefined}
+                    >
+                      {btn.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
