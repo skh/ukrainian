@@ -3,6 +3,7 @@ from app.models.entry import Lexeme, LexemeTranslation, LexemeForm, LexemeTag, C
 from app.models.word_family import WordFamily, WordFamilyMember
 from app.models.chunk import Chunk, ChunkTranslation, ChunkLink, ChunkTag
 from app.models.drill_config import DrillConfig
+from app.models.ref_pair import RefPair
 
 __all__ = [
     "Verb", "AspectPair", "Derivation",
@@ -10,4 +11,5 @@ __all__ = [
     "WordFamily", "WordFamilyMember",
     "Chunk", "ChunkTranslation", "ChunkLink",
     "DrillConfig",
+    "RefPair",
 ]

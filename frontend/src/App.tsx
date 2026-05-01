@@ -21,6 +21,10 @@ import DeclinablePage from './pages/DeclinablePage'
 import AddDeclinablePage from './pages/AddDeclinablePage'
 import DeclinablesListPage from './pages/DeclinablesListPage'
 import CustomDrillsPage from './pages/CustomDrillsPage'
+import RefPairsPage from './pages/RefPairsPage'
+import TrainingPage from './pages/TrainingPage'
+import TrainingPoolPage from './pages/TrainingPoolPage'
+import TrainingSessionPage from './pages/TrainingSessionPage'
 
 export default function App() {
   return (
@@ -55,6 +59,10 @@ export default function App() {
         <Route path="/numerals/add" element={<AddDeclinablePage pos="numeral" />} />
         <Route path="/numerals/:id" element={<DeclinablePage pos="numeral" />} />
         <Route path="/custom-drills" element={<CustomDrillsPage />} />
+        <Route path="/ref-pairs" element={<RefPairsPage />} />
+        <Route path="/training" element={<TrainingPage />} />
+        <Route path="/training/pools/:poolId" element={<TrainingPoolPage />} />
+        <Route path="/training/session" element={<TrainingSessionPage />} />
       </Routes>
     </BrowserRouter>
   )

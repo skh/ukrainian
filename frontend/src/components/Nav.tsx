@@ -10,6 +10,8 @@ const NAV_ITEMS = [
   { label: 'Analyze',    path: '/analyze' },
   { label: 'Chunks',     path: '/chunks' },
   { label: 'Word families', path: '/word-families' },
+  { label: 'Ref pairs',    path: '/ref-pairs' },
+  { label: 'Training',     path: '/training' },
 ]
 
 export function Nav() {

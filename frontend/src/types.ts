@@ -192,6 +192,14 @@ export interface DrillConfig {
   config: string  // JSON
 }
 
+export interface RefPair {
+  id: number
+  ipf: string | null
+  pf:  string | null
+  source: string | null
+  notes:  string | null
+}
+
 export interface Derivation {
   id: number
   source_verb_id: number

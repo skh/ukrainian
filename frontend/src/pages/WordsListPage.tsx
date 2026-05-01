@@ -42,8 +42,22 @@ function entryLabel(e: Lexeme) {
     const { ipf_verb, pf_verb } = e.pair
     return (
       <>
-        {ipf_verb && <span style={{ background: aspectBg.ipf, padding: '0.1em 0.35em', borderRadius: '3px', marginRight: '0.15em' }}>{ipf_verb.accented}</span>}
-        {pf_verb && <span style={{ background: aspectBg.pf, padding: '0.1em 0.35em', borderRadius: '3px' }}>{pf_verb.accented}</span>}
+        {ipf_verb && (
+          <>
+            <span style={{ background: aspectBg.ipf, padding: '0.1em 0.35em', borderRadius: '3px', marginRight: '0.15em' }}>{ipf_verb.accented}</span>
+            {ipf_verb.variants.length > 0 && (
+              <span style={{ color: '#888', fontSize: '0.85em', marginRight: '0.2em' }}>({ipf_verb.variants.map(v => v.accented).join(', ')})</span>
+            )}
+          </>
+        )}
+        {pf_verb && (
+          <>
+            <span style={{ background: aspectBg.pf, padding: '0.1em 0.35em', borderRadius: '3px' }}>{pf_verb.accented}</span>
+            {pf_verb.variants.length > 0 && (
+              <span style={{ color: '#888', fontSize: '0.85em', marginLeft: '0.2em' }}>({pf_verb.variants.map(v => v.accented).join(', ')})</span>
+            )}
+          </>
+        )}
       </>
     )
   }
@@ -52,7 +66,9 @@ function entryLabel(e: Lexeme) {
 
 function entryText(e: Lexeme): string {
   if (e.pos === 'pair' && e.pair) {
-    return [e.pair.ipf_verb?.accented, e.pair.pf_verb?.accented].filter(Boolean).join(' ')
+    const ipfForms = [e.pair.ipf_verb?.accented, ...(e.pair.ipf_verb?.variants.map(v => v.accented) ?? [])].filter(Boolean)
+    const pfForms = [e.pair.pf_verb?.accented, ...(e.pair.pf_verb?.variants.map(v => v.accented) ?? [])].filter(Boolean)
+    return [...ipfForms, ...pfForms].join(' ')
   }
   return e.accented
 }

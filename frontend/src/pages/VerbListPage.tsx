@@ -142,11 +142,14 @@ export default function VerbListPage() {
   const usedTagIds = new Set(lexemeTags.filter(lt => pairLexemeIds.has(lt.lexeme_id)).map(lt => lt.tag_id))
   const filterTags = allTags.filter(t => usedTagIds.has(t.id)).sort((a, b) => a.name.localeCompare(b.name))
 
+  function verbMatches(v: Verb | null | undefined, q: string): boolean {
+    if (!v) return false
+    if (stripAccent(v.accented).toLowerCase().includes(q)) return true
+    return v.variants.some(vr => stripAccent(vr.accented).toLowerCase().includes(q))
+  }
+
   const visiblePairs = pairs.filter(p => {
-    if (q && !(
-      (p.ipf_verb && stripAccent(p.ipf_verb.accented).toLowerCase().includes(q)) ||
-      (p.pf_verb && stripAccent(p.pf_verb.accented).toLowerCase().includes(q))
-    )) return false
+    if (q && !(verbMatches(p.ipf_verb, q) || verbMatches(p.pf_verb, q))) return false
     if (selectedTagIds.size > 0) {
       const pTags = tagsForLexeme(p.lexeme_id ?? -1)
       if (![...selectedTagIds].every(tid => pTags.some(t => t.id === tid))) return false
@@ -201,7 +204,7 @@ export default function VerbListPage() {
   const pagedPairs = sortedPairs.slice(clampedPage * pageSize, (clampedPage + 1) * pageSize)
 
   const visibleUnpaired = q
-    ? unpairedVerbs.filter(v => stripAccent(v.accented).toLowerCase().includes(q))
+    ? unpairedVerbs.filter(v => verbMatches(v, q))
     : unpairedVerbs
 
   const sortedUnpaired = [...visibleUnpaired].sort((a, b) =>
@@ -283,17 +286,31 @@ export default function VerbListPage() {
                 })()}
               >
                 {p.ipf_verb && (
-                  <span className="badge" style={{ background: aspectBg.ipf }}>
-                    {p.ipf_verb.accented}
-                  </span>
+                  <>
+                    <span className="badge" style={{ background: aspectBg.ipf }}>
+                      {p.ipf_verb.accented}
+                    </span>
+                    {p.ipf_verb.variants.length > 0 && (
+                      <span style={{ color: '#888', fontSize: '0.85em', marginLeft: '0.2em' }}>
+                        ({p.ipf_verb.variants.map(v => v.accented).join(', ')})
+                      </span>
+                    )}
+                  </>
                 )}
                 {p.ipf_verb && p.pf_verb && (
                   <span style={{ color: '#bbb', margin: '0 0.15em' }}>(</span>
                 )}
                 {p.pf_verb && (
-                  <span className="badge" style={{ background: aspectBg.pf }}>
-                    {p.pf_verb.accented}
-                  </span>
+                  <>
+                    <span className="badge" style={{ background: aspectBg.pf }}>
+                      {p.pf_verb.accented}
+                    </span>
+                    {p.pf_verb.variants.length > 0 && (
+                      <span style={{ color: '#888', fontSize: '0.85em', marginLeft: '0.2em' }}>
+                        ({p.pf_verb.variants.map(v => v.accented).join(', ')})
+                      </span>
+                    )}
+                  </>
                 )}
                 {p.ipf_verb && p.pf_verb && (
                   <span style={{ color: '#bbb' }}>)</span>
