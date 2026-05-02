@@ -65,6 +65,8 @@ The corpus name is extracted from line 2 of the file header. All files in a dire
 **Behaviour:**
 - Safe to rerun: existing `(corpus, lemma)` pairs are skipped (`INSERT OR IGNORE`).
 
+> **Note:** Sketch Engine corpus data is © Sketch Engine / respective rights holders. The exported frequency data is used here for personal study only and is not redistributed.
+
 ---
 
 ## `import_ref_pairs.py` — Import reference aspect pairs
@@ -101,6 +103,8 @@ python scripts/import_ref_pairs.py ../local/pairs_pugh.csv --source "Pugh 2009"
 ## `scrape_peremova_cefr.py` — Scrape CEFR data from puls.peremova.org
 
 Scrapes headword + CEFR level from [puls.peremova.org/entries](https://puls.peremova.org/entries) and writes a CSV suitable for `import_cefr.py`.
+
+> **Note:** The PULS wordlist is © Peremova / respective rights holders. The scraped data is used here for personal study only and is not redistributed.
 
 ```bash
 python scripts/scrape_peremova_cefr.py [--output cefr.csv] [--start-page 1]
