@@ -105,6 +105,21 @@ frontend/src/
 └── utils/                 # drillGenerators, drillSlots, forms, theme
 ```
 
+## Helper scripts
+
+See **[docs/scripts.md](docs/scripts.md)** for full documentation of the import and scraping scripts:
+
+| Script | Purpose |
+|---|---|
+| `import_cefr.py` | Import CEFR levels from CSV |
+| `import_lemma_frequencies.py` | Import Sketch Engine frequency data |
+| `import_ref_pairs.py` | Import reference aspect pairs from textbook CSV |
+| `scrape_peremova_cefr.py` | Scrape CEFR data from puls.peremova.org |
+
+All scripts run from `backend/` with the virtualenv active.
+
+---
+
 ## Notes
 
 - SQLite FK enforcement is on (`PRAGMA foreign_keys=ON` per connection); cascades are wired on all FK columns.
